@@ -10,6 +10,7 @@
     "astro": "astro"
   },
   "dependencies": {
+    "@chenglou/pretext": "^0.0.5",
     "astro": "^5.0.0",
     "framer-motion": "^11.0.0",
     "marked": "^18.0.0",
