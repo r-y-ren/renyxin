@@ -1,0 +1,649 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>功能介绍 - 二次元天堂</title>
+    <link rel="stylesheet" href="styles.css">
+    <style>
+        /* 特性展示页面样式 */
+        .feature-page {
+            background: var(--bg-primary);
+            color: var(--text-primary);
+            transition: all 0.3s ease;
+        }
+
+        .feature-navbar {
+            position: fixed;
+            top: 0;
+            width: 100%;
+            background: rgba(255,255,255,0.95);
+            backdrop-filter: blur(10px);
+            z-index: 999;
+            padding: 1rem 2rem;
+            border-bottom: 2px solid var(--border-color);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        body.dark-mode .feature-navbar {
+            background: rgba(15,15,30,0.95);
+        }
+
+        .feature-logo-small {
+            font-size: 1.5rem;
+            font-weight: bold;
+            color: var(--accent-primary);
+        }
+
+        .feature-nav-menu {
+            display: flex;
+            gap: 2rem;
+            margin: 0;
+            list-style: none;
+        }
+
+        .feature-nav-menu a {
+            color: var(--text-primary);
+            text-decoration: none;
+            font-weight: 500;
+            transition: color 0.3s ease;
+        }
+
+        .feature-nav-menu a:hover {
+            color: var(--accent-primary);
+        }
+
+        .feature-content {
+            padding-top: 80px;
+        }
+
+        /* Hero 区 */
+        .feature-hero {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 4rem 2rem;
+            text-align: center;
+        }
+
+        .feature-hero h1 {
+            font-size: 3rem;
+            margin-bottom: 1rem;
+            font-weight: 900;
+        }
+
+        .feature-hero p {
+            font-size: 1.2rem;
+            margin-bottom: 2rem;
+            opacity: 0.95;
+        }
+
+        /* 功能卡片区 */
+        .features-section {
+            padding: 4rem 2rem;
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        .features-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 2rem;
+            margin-bottom: 4rem;
+        }
+
+        .feature-card {
+            background: var(--bg-secondary);
+            border-radius: 12px;
+            padding: 2rem;
+            transition: all 0.3s ease;
+            cursor: pointer;
+            border: 2px solid var(--border-color);
+        }
+
+        .feature-card:hover {
+            transform: translateY(-5px);
+            border-color: var(--accent-primary);
+            box-shadow: 0 10px 30px rgba(255,107,157,0.2);
+        }
+
+        .feature-icon {
+            font-size: 3rem;
+            margin-bottom: 1rem;
+        }
+
+        .feature-card h3 {
+            font-size: 1.5rem;
+            margin-bottom: 1rem;
+            color: var(--accent-primary);
+        }
+
+        .feature-card p {
+            color: var(--text-secondary);
+            line-height: 1.6;
+            margin-bottom: 1rem;
+        }
+
+        .feature-list {
+            list-style: none;
+            margin: 1rem 0;
+        }
+
+        .feature-list li {
+            padding: 0.5rem 0;
+            color: var(--text-secondary);
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .feature-list li::before {
+            content: "✓";
+            color: #84d068;
+            font-weight: bold;
+        }
+
+        /* 等级系统详情 */
+        .level-system {
+            background: linear-gradient(135deg, var(--bg-secondary), var(--bg-primary));
+            padding: 3rem 2rem;
+            border-radius: 12px;
+            margin: 3rem 0;
+        }
+
+        .level-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 1.5rem;
+            margin-top: 2rem;
+        }
+
+        .level-card {
+            background: var(--bg-primary);
+            padding: 1.5rem;
+            border-radius: 8px;
+            text-align: center;
+            border-left: 4px solid var(--accent-primary);
+        }
+
+        .level-badge {
+            font-size: 2em;
+            margin-bottom: 0.5rem;
+        }
+
+        .level-title {
+            font-weight: bold;
+            color: var(--accent-primary);
+            margin-bottom: 0.5rem;
+        }
+
+        .level-desc {
+            font-size: 0.9rem;
+            color: var(--text-secondary);
+        }
+
+        /* CTA 按钮 */
+        .feature-cta {
+            text-align: center;
+            padding: 3rem 2rem;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border-radius: 12px;
+            margin: 3rem 0;
+        }
+
+        .feature-cta h2 {
+            font-size: 2rem;
+            margin-bottom: 1rem;
+        }
+
+        .feature-cta p {
+            font-size: 1.1rem;
+            margin-bottom: 2rem;
+            opacity: 0.95;
+        }
+
+        .cta-button-group {
+            display: flex;
+            gap: 1rem;
+            justify-content: center;
+            flex-wrap: wrap;
+        }
+
+        .btn-cta {
+            padding: 1rem 2.5rem;
+            font-size: 1rem;
+            border-radius: 50px;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            border: none;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .btn-cta-primary {
+            background: white;
+            color: #667eea;
+        }
+
+        .btn-cta-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 20px rgba(0,0,0,0.2);
+        }
+
+        .btn-cta-secondary {
+            background: transparent;
+            color: white;
+            border: 2px solid white;
+        }
+
+        .btn-cta-secondary:hover {
+            background: rgba(255,255,255,0.1);
+        }
+
+        /* FAQ 区 */
+        .faq-section {
+            padding: 3rem 2rem;
+            max-width: 800px;
+            margin: 0 auto;
+        }
+
+        .faq-item {
+            margin-bottom: 1.5rem;
+            background: var(--bg-secondary);
+            border-radius: 8px;
+            overflow: hidden;
+        }
+
+        .faq-question {
+            padding: 1.5rem;
+            background: var(--bg-secondary);
+            cursor: pointer;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-weight: 600;
+            transition: background 0.3s ease;
+        }
+
+        .faq-question:hover {
+            background: var(--accent-light);
+        }
+
+        .faq-answer {
+            padding: 1.5rem;
+            background: var(--bg-primary);
+            display: none;
+            color: var(--text-secondary);
+            line-height: 1.6;
+        }
+
+        .faq-answer.active {
+            display: block;
+        }
+
+        .faq-icon {
+            font-size: 1.5rem;
+            transition: transform 0.3s ease;
+        }
+
+        .faq-icon.active {
+            transform: rotate(45deg);
+        }
+
+        /* 页脚 */
+        .feature-footer {
+            background: var(--bg-secondary);
+            padding: 2rem;
+            text-align: center;
+            color: var(--text-secondary);
+            margin-top: 3rem;
+        }
+
+        @media (max-width: 768px) {
+            .feature-navbar {
+                flex-direction: column;
+                gap: 1rem;
+            }
+
+            .feature-nav-menu {
+                gap: 1rem;
+                font-size: 0.9rem;
+            }
+
+            .feature-hero h1 {
+                font-size: 2rem;
+            }
+
+            .features-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- 主题切换 -->
+    <div class="theme-toggle" id="themeToggle">
+        <span class="toggle-icon">🌙</span>
+    </div>
+
+    <!-- 导航栏 -->
+    <nav class="feature-navbar">
+        <div class="feature-logo-small">✨ 二次元天堂</div>
+        <ul class="feature-nav-menu">
+            <li><a href="#features">功能</a></li>
+            <li><a href="#level">等级系统</a></li>
+            <li><a href="#faq">常见问题</a></li>
+            <li><a href="start.html">返回</a></li>
+        </ul>
+    </nav>
+
+    <!-- 内容区 -->
+    <div class="feature-page">
+        <!-- Hero -->
+        <section class="feature-hero">
+            <h1>✨ 发现你的奇妙之旅</h1>
+            <p>一个融合了创意、社交、游戏和自我提升的综合平台</p>
+        </section>
+
+        <!-- 主要功能 -->
+        <section class="features-section" id="features">
+            <h2 class="section-title"><span class="title-glow">核心功能</span></h2>
+            
+            <div class="features-grid">
+                <!-- 时间邮局 -->
+                <div class="feature-card">
+                    <div class="feature-icon">📮</div>
+                    <h3>时间邮局</h3>
+                    <p>写一封信给未来的自己或朋友，设定发送时间，在特定的时刻收到温暖的问候。</p>
+                    <ul class="feature-list">
+                        <li>定时发送邮件</li>
+                        <li>精美的邮件模板</li>
+                        <li>邮件管理系统</li>
+                        <li>获取经验值奖励</li>
+                    </ul>
+                </div>
+
+                <!-- 互动树洞 -->
+                <div class="feature-card">
+                    <div class="feature-icon">🌳</div>
+                    <h3>互动树洞</h3>
+                    <p>分享你的秘密，倾诉你的故事。可上传图片，支持匿名发布。</p>
+                    <ul class="feature-list">
+                        <li>图文并发</li>
+                        <li>匿名倾诉</li>
+                        <li>社区互动</li>
+                        <li>点赞评论系统</li>
+                    </ul>
+                </div>
+
+                <!-- 个性日历 -->
+                <div class="feature-card">
+                    <div class="feature-icon">📅</div>
+                    <h3>个性化日历</h3>
+                    <p>管理你的生活目标和重要日期，自定义日历背景，记录每一个重要时刻。</p>
+                    <ul class="feature-list">
+                        <li>自定义背景</li>
+                        <li>目标追踪</li>
+                        <li>事件提醒</li>
+                        <li>数据统计分析</li>
+                    </ul>
+                </div>
+
+                <!-- 在线聊天室 -->
+                <div class="feature-card">
+                    <div class="feature-icon">💬</div>
+                    <h3>在线聊天室</h3>
+                    <p>与其他用户实时聊天，了解在线人数，参与有趣的讨论。</p>
+                    <ul class="feature-list">
+                        <li>实时通讯</li>
+                        <li>在线人数展示</li>
+                        <li>安全隐私保护</li>
+                        <li>聊天历史记录</li>
+                    </ul>
+                </div>
+
+                <!-- 小游戏 -->
+                <div class="feature-card">
+                    <div class="feature-icon">🎮</div>
+                    <h3>全站小游戏</h3>
+                    <p>参与周期性的小游戏，赚取奖励，与其他玩家竞争排名。</p>
+                    <ul class="feature-list">
+                        <li>养成小农场</li>
+                        <li>季节任务</li>
+                        <li>排行榜系统</li>
+                        <li>成就徽章</li>
+                    </ul>
+                </div>
+
+                <!-- 推送提醒 -->
+                <div class="feature-card">
+                    <div class="feature-icon">🔔</div>
+                    <h3>人文关怀推送</h3>
+                    <p>根据你的心情和特殊日期，推送温馨提醒和生日祝福。</p>
+                    <ul class="feature-list">
+                        <li>定时提醒</li>
+                        <li>生日祝福</li>
+                        <li>阅读建议</li>
+                        <li>自定义设置</li>
+                    </ul>
+                </div>
+            </div>
+        </section>
+
+        <!-- 等级系统 -->
+        <section class="level-system" id="level">
+            <h2 class="section-title"><span class="title-glow">等级与权限系统</span></h2>
+            <p style="text-align: center; color: var(--text-secondary); margin-bottom: 2rem;">
+                通过活跃度和时间投入来提升等级，解锁更多功能和特权！
+            </p>
+            
+            <div class="level-grid">
+                <div class="level-card">
+                    <div class="level-badge">Lv.1-5</div>
+                    <div class="level-title">🌱 新手村</div>
+                    <div class="level-desc">
+                        <p>基础功能体验</p>
+                        <p style="font-size: 0.85rem;">邮局 · 树洞</p>
+                    </div>
+                </div>
+
+                <div class="level-card">
+                    <div class="level-badge">Lv.6-10</div>
+                    <div class="level-title">⚔️ 学徒</div>
+                    <div class="level-desc">
+                        <p>开启社交功能</p>
+                        <p style="font-size: 0.85rem;">+ 聊天室 · 游戏</p>
+                    </div>
+                </div>
+
+                <div class="level-card">
+                    <div class="level-badge">Lv.11-20</div>
+                    <div class="level-title">🗡️ 探索者</div>
+                    <div class="level-desc">
+                        <p>高级功能解锁</p>
+                        <p style="font-size: 0.85rem;">+ 自定义日历</p>
+                    </div>
+                </div>
+
+                <div class="level-card">
+                    <div class="level-badge">Lv.21-30</div>
+                    <div class="level-title">👑 大师</div>
+                    <div class="level-desc">
+                        <p>顶级功能享受</p>
+                        <p style="font-size: 0.85rem;">VIP特权 · 全功能</p>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- 用户体系 -->
+        <section class="features-section">
+            <h2 class="section-title"><span class="title-glow">用户成长体系</span></h2>
+            
+            <div class="features-grid">
+                <div class="feature-card">
+                    <div class="feature-icon">🎯</div>
+                    <h3>技能树系统</h3>
+                    <p>通过活跃参与，逐步构建你的个人技能树，展示你的能力标签。</p>
+                </div>
+
+                <div class="feature-card">
+                    <div class="feature-icon">🌾</div>
+                    <h3>农场互动区</h3>
+                    <p>页面底部的农场会根据你的活跃度生长变化，是你参与度的视觉表现。</p>
+                </div>
+
+                <div class="feature-card">
+                    <div class="feature-icon">🌍</div>
+                    <h3>时间感应主题</h3>
+                    <p>页面主题会根据时间（昼夜）和季节自动变换，营造沉浸式体验。</p>
+                </div>
+            </div>
+        </section>
+
+        <!-- CTA -->
+        <section class="feature-cta">
+            <h2>准备好开始你的冒险了吗？</h2>
+            <p>加入数千名用户，一起在二次元的世界里成长、探索、创造美好故事。</p>
+            <div class="cta-button-group">
+                <button class="btn-cta btn-cta-primary" onclick="window.location.href='start.html'">
+                    立即注册
+                </button>
+                <button class="btn-cta btn-cta-secondary" onclick="window.location.href='index.html'">
+                    返回首页
+                </button>
+            </div>
+        </section>
+
+        <!-- FAQ -->
+        <section class="faq-section" id="faq">
+            <h2 class="section-title" style="text-align: center;"><span class="title-glow">常见问题</span></h2>
+            
+            <div class="faq-item">
+                <div class="faq-question">
+                    <span>需要登录才能使用吗？</span>
+                    <span class="faq-icon">+</span>
+                </div>
+                <div class="faq-answer">
+                    不需要！你可以自由浏览大多数功能，但登录后可以解锁更多高级功能，如邮件定时、目标追踪和游戏参与。
+                </div>
+            </div>
+
+            <div class="faq-item">
+                <div class="faq-question">
+                    <span>树洞支持多少内容？</span>
+                    <span class="faq-icon">+</span>
+                </div>
+                <div class="faq-answer">
+                    树洞支持文字和图片。你可以一次上传最多5张图片，文字内容无严格限制。如果你想分享很长的内容，文字会自动折叠。
+                </div>
+            </div>
+
+            <div class="faq-item">
+                <div class="faq-question">
+                    <span>邮件超过时间会自动发送吗？</span>
+                    <span class="faq-icon">+</span>
+                </div>
+                <div class="faq-answer">
+                    当然会！如果你的邮件设置了发送时间，系统会在该时刻自动发送。即使你离线，邮件也会被正确投递。
+                </div>
+            </div>
+
+            <div class="faq-item">
+                <div class="faq-question">
+                    <span>匿名发布的树洞会被保存吗？</span>
+                    <span class="faq-icon">+</span>
+                </div>
+                <div class="faq-answer">
+                    会的。匿名发布只是隐藏了你的身份，但数据会继续保存在你的账户中。你随时可以联系我们获取你的数据。
+                </div>
+            </div>
+
+            <div class="faq-item">
+                <div class="faq-question">
+                    <span>游戏积分如何换取奖励？</span>
+                    <span class="faq-icon">+</span>
+                </div>
+                <div class="faq-answer">
+                    游戏积分可以用于兑换各种奖励，包括限定头像、背景和其他虚拟物品。我们还会定期举办高积分用户的特殊活动。
+                </div>
+            </div>
+        </section>
+
+        <!-- 页脚 -->
+        <footer class="feature-footer">
+            <p>© 2026 二次元天堂 | 用创意和爱心打造的文艺社区</p>
+            <p style="margin-top: 0.5rem; font-size: 0.9rem;">
+                <a href="#about" style="color: var(--accent-primary); text-decoration: none;">关于</a> · 
+                <a href="#privacy" style="color: var(--accent-primary); text-decoration: none;">隐私</a> · 
+                <a href="#terms" style="color: var(--accent-primary); text-decoration: none;">条款</a>
+            </p>
+        </footer>
+    </div>
+
+    <script src="js/utils.js"></script>
+    <script>
+        // 初始化
+        document.addEventListener('DOMContentLoaded', () => {
+            // 主题切换
+            const themeToggle = document.getElementById('themeToggle');
+            if (themeToggle) {
+                themeToggle.addEventListener('click', () => {
+                    document.body.classList.toggle('dark-mode');
+                    const isDark = document.body.classList.contains('dark-mode');
+                    localStorage.setItem('theme', isDark ? 'dark' : 'light');
+                    updateThemeIcon();
+                });
+
+                function updateThemeIcon() {
+                    const isDark = document.body.classList.contains('dark-mode');
+                    themeToggle.querySelector('.toggle-icon').textContent = isDark ? '☀️' : '🌙';
+                }
+
+                const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+                const savedTheme = localStorage.getItem('theme');
+                if (savedTheme === 'dark' || (!savedTheme && prefersDark)) {
+                    document.body.classList.add('dark-mode');
+                }
+                updateThemeIcon();
+            }
+
+            // FAQ 展开/折叠
+            document.querySelectorAll('.faq-question').forEach(question => {
+                question.addEventListener('click', function() {
+                    const answer = this.nextElementSibling;
+                    const icon = this.querySelector('.faq-icon');
+                    
+                    document.querySelectorAll('.faq-answer').forEach(a => {
+                        if (a !== answer) {
+                            a.classList.remove('active');
+                        }
+                    });
+                    document.querySelectorAll('.faq-icon').forEach(i => {
+                        if (i !== icon) {
+                            i.classList.remove('active');
+                        }
+                    });
+
+                    answer.classList.toggle('active');
+                    icon.classList.toggle('active');
+                });
+            });
+
+            // 平滑滚动
+            document.querySelectorAll('a[href^="#"]').forEach(anchor => {
+                anchor.addEventListener('click', function (e) {
+                    e.preventDefault();
+                    const target = document.querySelector(this.getAttribute('href'));
+                    if (target) {
+                        target.scrollIntoView({ behavior: 'smooth' });
+                    }
+                });
+            });
+        });
+    </script>
+</body>
+</html>

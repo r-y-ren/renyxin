@@ -1,0 +1,171 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>二次元世界 - Anime Portal</title>
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+    <!-- 主题切换按钮 -->
+    <div class="theme-toggle" id="themeToggle">
+      <span class="toggle-icon">🌙</span>
+    </div>
+
+    <!-- 导航栏 -->
+    <nav class="navbar">
+      <div class="nav-logo">✨ 二次元天堂</div>
+      <ul class="nav-menu">
+        <li><a href="#home">首页</a></li>
+        <li><a href="#gallery">画廊</a></li>
+        <li><a href="#about">关于</a></li>
+        <li><a href="#contact">联系</a></li>
+      </ul>
+    </nav>
+
+    <!-- 主要内容区域 -->
+    <main class="container">
+      <!-- Hero Section with Pretext Effect -->
+      <section class="hero" id="home">
+        <div class="pretext-container">
+          <!-- 背景图像（Pretext效果） -->
+          <div class="pretext-background">
+            <img
+              src="res/胡桃（核心素材）.png"
+              alt="Character"
+              class="character-image"
+              id="characterImage"
+            />
+          </div>
+
+          <!-- 文字内容 -->
+          <div class="pretext-text">
+            <h1 class="main-title">
+              <span class="title-line">欢迎来到</span>
+              <span class="title-line highlight">二次元的世界</span>
+            </h1>
+            <p class="subtitle">探索动漫、二次元文化的魔法</p>
+            <div class="cta-buttons">
+              <button class="btn btn-primary">开始探索</button>
+              <button class="btn btn-secondary">了解更多</button>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Pretext文字效果区域 -->
+      <section class="pretext-text-section">
+        <div class="pretext-text-container">
+          <div class="pretext-text-bg" id="pretextBg">
+            <img
+              src="res/胡桃（核心素材）.png"
+              alt="Background"
+              class="pretext-bg-image"
+            />
+          </div>
+          <div class="pretext-text-content">
+            <h2>Pretext - 文字与背景的完美融合</h2>
+            <p>
+              Pretext 是一种创新的网页设计效果，通过让背景图像在文字下方移动，
+              创造出独特的视觉层次感。这种效果在现代扁平化设计中被广泛应用于
+              游戏官网、动漫展宣传和创意网站。当你滚动页面时，背景会以不同的速度
+              移动，产生视差效果，从而提升页面的交互体验和视觉吸引力。
+            </p>
+          </div>
+        </div>
+      </section>
+
+      <!-- 画廊区域 -->
+      <section class="gallery" id="gallery">
+        <h2 class="section-title">
+          <span class="title-glow">角色展廊</span>
+        </h2>
+        <div class="gallery-grid">
+          <div class="gallery-card">
+            <div class="card-image">
+              <img src="res/胡桃（核心素材）.png" alt="Character 1" />
+            </div>
+            <div class="card-content">
+              <h3>核心角色</h3>
+              <p>精致的二次元角色设计</p>
+            </div>
+          </div>
+          <div class="gallery-card">
+            <div class="card-image placeholder">
+              <div class="placeholder-text">等待素材</div>
+            </div>
+            <div class="card-content">
+              <h3>角色二</h3>
+              <p>待添加更多角色</p>
+            </div>
+          </div>
+          <div class="gallery-card">
+            <div class="card-image placeholder">
+              <div class="placeholder-text">等待素材</div>
+            </div>
+            <div class="card-content">
+              <h3>角色三</h3>
+              <p>敬请期待</p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- 关于区域 -->
+      <section class="about" id="about">
+        <h2 class="section-title">关于此站点</h2>
+        <div class="about-content">
+          <div class="about-text">
+            <h3>现代二次元网页设计</h3>
+            <p>
+              本站点采用现代扁平化 UI 设计，融合原神、崩坏等知名游戏的视觉风格。
+              通过 Pretext 技术、昼夜交替主题和流畅的动画效果，
+              为用户提供沉浸式的二次元网页体验。
+            </p>
+            <ul class="features-list">
+              <li>✨ Pretext 视差效果</li>
+              <li>🌓 昼夜交替主题</li>
+              <li>🎨 现代扁平化设计</li>
+              <li>⚡ 流畅的交互动画</li>
+              <li>📱 完全响应式布局</li>
+            </ul>
+          </div>
+          <div class="about-stats">
+            <div class="stat">
+              <span class="stat-number">100%</span>
+              <span class="stat-label">纯CSS + JS</span>
+            </div>
+            <div class="stat">
+              <span class="stat-number">∞</span>
+              <span class="stat-label">可扩展性</span>
+            </div>
+            <div class="stat">
+              <span class="stat-number">🔥</span>
+              <span class="stat-label">创意无限</span>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- 联系区域 -->
+      <section class="contact" id="contact">
+        <h2 class="section-title">联系我们</h2>
+        <div class="contact-form">
+          <form id="contactForm">
+            <input type="text" placeholder="你的名字" required />
+            <input type="email" placeholder="你的邮箱" required />
+            <textarea placeholder="留言内容..." rows="5" required></textarea>
+            <button type="submit" class="btn btn-primary">发送</button>
+          </form>
+        </div>
+      </section>
+    </main>
+
+    <!-- 底部 -->
+    <footer class="footer">
+      <p>© 2026 二次元天堂 | 用 ❤️ 创作的动漫网页</p>
+    </footer>
+
+    <script src="script.js"></script>
+  </body>
+</html>

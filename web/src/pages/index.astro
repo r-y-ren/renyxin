@@ -1,0 +1,59 @@
+---
+import Layout from '../layouts/Layout.astro';
+import AnimatedBox from '../components/AnimatedBox';
+---
+
+<Layout title="欢迎来到 Astro + React + Framer Motion">
+  <main class="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 dark:from-slate-900 dark:to-slate-800 py-20 px-4">
+    <div class="max-w-4xl mx-auto">
+      <h1 class="text-5xl font-bold text-center mb-6 bg-clip-text text-transparent bg-gradient-to-r from-blue-600 to-purple-600">
+        Astro 项目已就绪 🚀
+      </h1>
+      
+      <p class="text-xl text-center text-slate-600 dark:text-slate-300 mb-12">
+        这是一个集成了 React、Tailwind CSS 和 Framer Motion 的 Astro 项目
+      </p>
+      
+
+      <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+        <AnimatedBox delay={0}>
+          <h2 class="text-2xl font-bold mb-2">✨ React 集成</h2>
+          <p>使用 React 组件构建交互式用户界面</p>
+        </AnimatedBox>
+
+        <AnimatedBox delay={0.1}>
+          <h2 class="text-2xl font-bold mb-2">🎨 Tailwind CSS</h2>
+          <p>原子化样式框架，快速构建现代设计</p>
+        </AnimatedBox>
+
+        <AnimatedBox delay={0.2}>
+          <h2 class="text-2xl font-bold mb-2">🎬 Framer Motion</h2>
+          <p>强大的动画库，实现复杂的交互效果</p>
+        </AnimatedBox>
+      </div>
+
+      <div class="mt-12 p-8 bg-white dark:bg-slate-800 rounded-lg shadow-lg">
+        <h2 class="text-2xl font-bold mb-4">📁 项目结构</h2>
+        <pre class="bg-slate-100 dark:bg-slate-900 p-4 rounded overflow-auto text-sm"><code>{`src/
+├── components/      # React 组件
+├── layouts/         # Astro 布局
+├── pages/          # 页面路由
+├── content/        # Markdown 数据
+└── styles/         # 全局样式`}</code></pre>
+      </div>
+
+      <div class="mt-12 text-center">
+        <p class="text-slate-600 dark:text-slate-400 mb-4">
+          开始编辑 <code class="bg-slate-200 dark:bg-slate-700 px-2 py-1 rounded">src/pages/index.astro</code> 来自定义您的网站
+        </p>
+      </div>
+    </div>
+    
+
+</Layout>
+
+<style>
+  code {
+    font-family: 'Courier New', monospace;
+  }
+</style>

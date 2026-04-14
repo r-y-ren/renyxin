@@ -1,0 +1,101 @@
+<!-- 这是一个可选的样式演示页面，展示所有UI组件 -->
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>组件演示 - 二次元天堂</title>
+    <link rel="stylesheet" href="styles.css" />
+    <style>
+      .demo-section {
+        padding: 3rem 2rem;
+        border-bottom: 2px solid var(--border-color);
+      }
+      .demo-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+        gap: 2rem;
+        margin-top: 2rem;
+      }
+      .demo-item {
+        padding: 1rem;
+        background: var(--bg-secondary);
+        border-radius: 8px;
+      }
+    </style>
+  </head>
+  <body>
+    <!-- 主题切换 -->
+    <div class="theme-toggle" id="themeToggle">
+      <span class="toggle-icon">🌙</span>
+    </div>
+
+    <nav class="navbar">
+      <div class="nav-logo">✨ UI 组件演示</div>
+      <ul class="nav-menu">
+        <li><a href="#buttons">按钮</a></li>
+        <li><a href="#colors">色彩</a></li>
+        <li><a href="#cards">卡片</a></li>
+      </ul>
+    </nav>
+
+    <main class="container">
+      <section class="demo-section" id="buttons">
+        <h2 class="section-title"><span class="title-glow">按钮组件</span></h2>
+        <div class="demo-grid">
+          <div class="demo-item">
+            <button class="btn btn-primary">主按钮</button>
+          </div>
+          <div class="demo-item">
+            <button class="btn btn-secondary">次按钮</button>
+          </div>
+        </div>
+      </section>
+
+      <section class="demo-section" id="colors">
+        <h2 class="section-title"><span class="title-glow">色彩方案</span></h2>
+        <div class="demo-grid">
+          <div class="demo-item" style="background: #ff6b9d; color: white">
+            <strong>主强调色</strong><br />#ff6b9d
+          </div>
+          <div class="demo-item" style="background: #c06c84; color: white">
+            <strong>次强调色</strong><br />#c06c84
+          </div>
+          <div class="demo-item" style="background: #84d068; color: white">
+            <strong>成功色</strong><br />#84d068
+          </div>
+        </div>
+      </section>
+
+      <section class="demo-section" id="cards">
+        <h2 class="section-title"><span class="title-glow">卡片样式</span></h2>
+        <div class="gallery-grid">
+          <div class="gallery-card">
+            <div class="card-image placeholder">
+              <div class="placeholder-text">卡片1</div>
+            </div>
+            <div class="card-content">
+              <h3>卡片标题</h3>
+              <p>卡片描述文本</p>
+            </div>
+          </div>
+          <div class="gallery-card">
+            <div class="card-image placeholder">
+              <div class="placeholder-text">卡片2</div>
+            </div>
+            <div class="card-content">
+              <h3>卡片标题</h3>
+              <p>卡片描述文本</p>
+            </div>
+          </div>
+        </div>
+      </section>
+    </main>
+
+    <footer class="footer">
+      <p>© 2026 UI 组件演示</p>
+    </footer>
+
+    <script src="script.js"></script>
+  </body>
+</html>

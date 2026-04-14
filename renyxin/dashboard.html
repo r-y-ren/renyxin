@@ -1,0 +1,860 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>仪表板 - 二次元天堂</title>
+    <link rel="stylesheet" href="styles.css">
+    <style>
+        /* 仪表板特定样式 */
+        .dashboard-container {
+            display: grid;
+            grid-template-columns: 260px 1fr;
+            min-height: 100vh;
+            background: linear-gradient(135deg, var(--bg-primary) 0%, var(--bg-secondary) 100%);
+        }
+
+        /* 侧边栏 */
+        .sidebar {
+            background: linear-gradient(180deg, var(--bg-secondary) 0%, rgba(245, 247, 251, 0.8) 100%);
+            border-right: 1px solid var(--border-color);
+            padding: 1.5rem 0;
+            position: fixed;
+            height: 100vh;
+            overflow-y: auto;
+            width: 260px;
+            box-shadow: 2px 0 8px var(--shadow-color);
+        }
+
+        body.dark-mode .sidebar {
+            background: linear-gradient(180deg, var(--bg-secondary) 0%, rgba(26, 26, 46, 0.8) 100%);
+        }
+
+        .sidebar-header {
+            padding: 2rem 1.5rem 1.5rem;
+            text-align: center;
+            border-bottom: 1px solid var(--border-color);
+            margin-bottom: 1.5rem;
+        }
+
+        .sidebar-logo {
+            font-size: 2.5rem;
+            margin-bottom: 0.8rem;
+            animation: bounce 2s ease-in-out infinite;
+        }
+
+        .sidebar-title {
+            font-weight: 800;
+            background: linear-gradient(135deg, var(--accent-primary), var(--accent-secondary));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            font-size: 1.1rem;
+            letter-spacing: 1px;
+        }
+
+        .sidebar-menu {
+            list-style: none;
+            padding: 0.5rem 0;
+        }
+
+        .sidebar-menu-item {
+            padding: 1.2rem 1.5rem;
+            cursor: pointer;
+            transition: all 0.35s cubic-bezier(0.34, 1.56, 0.64, 1);
+            border-left: 4px solid transparent;
+            color: var(--text-primary);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .sidebar-menu-item::before {
+            content: '';
+            position: absolute;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, var(--accent-light), transparent);
+            opacity: 0;
+            transition: opacity 0.3s ease;
+            z-index: -1;
+        }
+
+        .sidebar-menu-item:hover::before,
+        .sidebar-menu-item.active::before {
+            opacity: 1;
+        }
+
+        .sidebar-menu-item:hover,
+        .sidebar-menu-item.active {
+            border-left-color: var(--accent-primary);
+            color: var(--accent-primary);
+            font-weight: 600;
+            transform: translateX(5px);
+        }
+
+        .sidebar-menu-item .icon {
+            margin-right: 0.8rem;
+            font-size: 1.3rem;
+            display: inline-block;
+        }
+
+        .sidebar-footer {
+            position: absolute;
+            bottom: 1.5rem;
+            width: 100%;
+            padding: 0 1.5rem;
+            text-align: center;
+        }
+
+        .logout-btn {
+            width: 100%;
+            padding: 0.9rem;
+            background: linear-gradient(135deg, #e74c3c, #c0392b);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: 700;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 12px rgba(231, 76, 60, 0.3);
+        }
+
+        .logout-btn:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 8px 20px rgba(231, 76, 60, 0.4);
+        }
+
+        .logout-btn:active {
+            transform: translateY(-1px);
+        }
+
+        /* 主内容 */
+        .main-content {
+            margin-left: 260px;
+            padding: 2.5rem;
+        }
+
+        .dashboard-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 2.5rem;
+        }
+
+        .dashboard-title {
+            font-size: 2.5rem;
+            font-weight: 900;
+            background: linear-gradient(135deg, var(--accent-primary), var(--accent-secondary));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            letter-spacing: -1px;
+        }
+
+        .dashboard-actions {
+            display: flex;
+            gap: 1rem;
+        }
+
+        /* 用户卡片 */
+        .user-card {
+            background: var(--bg-secondary);
+            border-radius: 16px;
+            padding: 2.5rem;
+            margin-bottom: 3rem;
+            display: grid;
+            grid-template-columns: 120px 1fr auto;
+            gap: 2.5rem;
+            align-items: center;
+            box-shadow: 0 8px 24px var(--shadow-color);
+            border: 2px solid rgba(255, 107, 157, 0.1);
+            transition: all 0.3s ease;
+        }
+
+        .user-card:hover {
+            box-shadow: 0 15px 40px rgba(255, 107, 157, 0.15);
+            transform: translateY(-2px);
+        }
+
+        .user-avatar {
+            width: 120px;
+            height: 120px;
+            border-radius: 50%;
+            object-fit: cover;
+            border: 4px solid var(--accent-primary);
+            box-shadow: 0 8px 20px rgba(255, 107, 157, 0.3);
+        }
+
+        .user-info h2 {
+            font-size: 1.6rem;
+            margin-bottom: 0.8rem;
+            color: var(--text-primary);
+            font-weight: 800;
+        }
+
+        .user-stats {
+            display: flex;
+            gap: 2.5rem;
+            margin-top: 1rem;
+        }
+
+        .stat-item {
+            display: flex;
+            flex-direction: column;
+        }
+
+        .stat-label {
+            font-size: 0.75rem;
+            color: var(--text-secondary);
+            letter-spacing: 0.5px;
+            text-transform: uppercase;
+        }
+
+        .stat-value {
+            font-size: 1.4rem;
+            font-weight: 800;
+            background: linear-gradient(135deg, var(--accent-primary), var(--accent-secondary));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .user-level-section {
+            text-align: center;
+            padding: 1.5rem;
+            background: rgba(255, 107, 157, 0.05);
+            border-radius: 12px;
+        }
+
+        .level-badge {
+            font-size: 2.5rem;
+            font-weight: 900;
+            background: linear-gradient(135deg, var(--accent-primary), var(--accent-secondary));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            margin-bottom: 1rem;
+        }
+
+        .exp-bar {
+            width: 180px;
+            height: 12px;
+            background: var(--border-color);
+            border-radius: 6px;
+            overflow: hidden;
+            margin-bottom: 0.8rem;
+            box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.1);
+        }
+
+        .exp-fill {
+            height: 100%;
+            background: linear-gradient(90deg, var(--accent-primary), var(--accent-secondary));
+            width: 45%;
+            transition: width 0.5s ease;
+            box-shadow: 0 0 10px rgba(255, 107, 157, 0.5);
+        }
+
+        .exp-text {
+            font-size: 0.8rem;
+            color: var(--text-secondary);
+            font-weight: 600;
+        }
+
+        /* 快速访问 */
+        .quick-access {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+            gap: 2rem;
+            margin-bottom: 3.5rem;
+        }
+
+        .quick-card {
+            background: var(--bg-secondary);
+            border-radius: 16px;
+            padding: 2rem;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.35s cubic-bezier(0.34, 1.56, 0.64, 1);
+            border: 2px solid var(--border-color);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .quick-card::before {
+            content: '';
+            position: absolute;
+            top: -50%;
+            left: -50%;
+            width: 200%;
+            height: 200%;
+            background: radial-gradient(circle at center, rgba(255, 107, 157, 0.1), transparent);
+            opacity: 0;
+            transition: opacity 0.3s ease;
+            transform: translate(0);
+        }
+
+        .quick-card:hover {
+            transform: translateY(-8px);
+            border-color: var(--accent-primary);
+            box-shadow: 0 15px 40px rgba(255, 107, 157, 0.25);
+        }
+
+        .quick-card:hover::before {
+            opacity: 1;
+        }
+
+        .quick-icon {
+            font-size: 3.5rem;
+            margin-bottom: 1rem;
+            display: block;
+            transition: transform 0.3s ease;
+        }
+
+        .quick-card:hover .quick-icon {
+            transform: scale(1.15) rotate(10deg);
+        }
+
+        .quick-title {
+            font-weight: 700;
+            margin-bottom: 0.5rem;
+            background: linear-gradient(135deg, var(--accent-primary), var(--accent-secondary));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            font-size: 1.1rem;
+        }
+
+        .quick-description {
+            font-size: 0.85rem;
+            color: var(--text-secondary);
+        }
+
+        /* 统计板块 */
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+            gap: 1.5rem;
+            margin-bottom: 3.5rem;
+        }
+
+        .stat-card {
+            background: var(--bg-secondary);
+            border-radius: 16px;
+            padding: 2rem 1.5rem;
+            text-align: center;
+            border-left: 5px solid var(--accent-primary);
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 12px var(--shadow-color);
+        }
+
+        .stat-card:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 10px 30px rgba(255, 107, 157, 0.2);
+        }
+
+        .stat-card-value {
+            font-size: 2.2rem;
+            font-weight: 900;
+            background: linear-gradient(135deg, var(--accent-primary), var(--accent-secondary));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            margin-bottom: 0.5rem;
+        }
+
+        .stat-card-label {
+            font-size: 0.85rem;
+            color: var(--text-secondary);
+            letter-spacing: 0.5px;
+            text-transform: uppercase;
+        }
+
+        /* 农场区 */
+        .farm-section {
+            background: linear-gradient(135deg, rgba(255, 200, 100, 0.05), rgba(100, 200, 100, 0.05));
+            border-radius: 16px;
+            padding: 2.5rem;
+            margin-bottom: 2.5rem;
+            border: 2px solid rgba(100, 200, 100, 0.2);
+        }
+
+        .farm-title {
+            font-weight: 800;
+            margin-bottom: 1rem;
+            font-size: 1.3rem;
+            color: var(--text-primary);
+        }
+
+        .farm-area {
+            display: grid;
+            grid-template-columns: repeat(5, 1fr);
+            gap: 1.5rem;
+            min-height: 200px;
+            background: linear-gradient(135deg, rgba(255,200,100,0.1), rgba(100,200,100,0.1)), url('res/素材\ (2).jpg');
+            background-size: cover;
+            background-position: center;
+            background-attachment: local;
+            border-radius: 12px;
+            padding: 2rem;
+            align-items: center;
+            justify-items: center;
+            border: 2px dashed rgba(100, 200, 100, 0.3);
+        }
+
+        .crop {
+            font-size: 3rem;
+            text-align: center;
+            opacity: 0.6;
+            transition: all 0.3s ease;
+            filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.1));
+        }
+
+        .crop.growing {
+            font-size: 3.5rem;
+            opacity: 1;
+            animation: bounce 2s ease-in-out infinite;
+        }
+
+        .crop:hover {
+            transform: scale(1.25) rotate(5deg);
+            filter: drop-shadow(0 4px 10px rgba(0, 0, 0, 0.2));
+        }
+
+        /* 最近活动 */
+        .activity-section {
+            background: var(--bg-secondary);
+            border-radius: 16px;
+            padding: 2.5rem;
+            margin-bottom: 2rem;
+            box-shadow: 0 4px 12px var(--shadow-color);
+        }
+
+        .activity-title {
+            font-weight: 800;
+            margin-bottom: 1.5rem;
+            font-size: 1.3rem;
+            color: var(--text-primary);
+        }
+
+        .activity-item {
+            padding: 1.2rem;
+            border-left: 4px solid var(--accent-primary);
+            margin-bottom: 1rem;
+            background: var(--bg-primary);
+            border-radius: 8px;
+            transition: all 0.3s ease;
+        }
+
+        .activity-item:hover {
+            transform: translateX(5px);
+            box-shadow: 0 2px 8px var(--shadow-color);
+        }
+
+        .activity-time {
+            font-size: 0.75rem;
+            color: var(--text-secondary);
+            margin-bottom: 0.3rem;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .activity-text {
+            color: var(--text-primary);
+            font-weight: 500;
+        }
+
+        .empty-state {
+            text-align: center;
+            padding: 3rem 2rem;
+            color: var(--text-secondary);
+        }
+
+        .empty-state-icon {
+            font-size: 2.5rem;
+            margin-bottom: 1rem;
+            opacity: 0.5;
+        }
+
+        @keyframes bounce {
+            0%, 100% { transform: translateY(0) scale(1); }
+            50% { transform: translateY(-10px) scale(1.05); }
+        }
+
+        @media (max-width: 1024px) {
+            .quick-access {
+                grid-template-columns: repeat(3, 1fr);
+            }
+            
+            .farm-area {
+                grid-template-columns: repeat(4, 1fr);
+            }
+        }
+
+        @media (max-width: 768px) {
+            .dashboard-container {
+                grid-template-columns: 1fr;
+            }
+
+            .sidebar {
+                position: relative;
+                width: 100%;
+                height: auto;
+                border-right: none;
+                border-bottom: 1px solid var(--border-color);
+            }
+
+            .main-content {
+                margin-left: 0;
+                padding: 1.5rem;
+            }
+
+            .dashboard-title {
+                font-size: 1.8rem;
+            }
+
+            .user-card {
+                grid-template-columns: 1fr;
+                gap: 1.5rem;
+                text-align: center;
+            }
+
+            .user-stats {
+                justify-content: center;
+                gap: 1.5rem;
+            }
+
+            .quick-access {
+                grid-template-columns: repeat(2, 1fr);
+                gap: 1rem;
+            }
+
+            .farm-area {
+                grid-template-columns: repeat(3, 1fr);
+                gap: 1rem;
+            }
+
+            .sidebar-footer {
+                position: relative;
+                margin-top: 1rem;
+            }
+        }
+
+        @media (max-width: 480px) {
+            .main-content {
+                padding: 1rem;
+            }
+
+            .dashboard-title {
+                font-size: 1.5rem;
+            }
+
+            .quick-access {
+                grid-template-columns: 1fr;
+            }
+
+            .stats-grid {
+                grid-template-columns: repeat(2, 1fr);
+            }
+
+            .farm-area {
+                grid-template-columns: repeat(2, 1fr);
+            }
+
+            .quick-icon {
+                font-size: 2.5rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="dashboard-container">
+        <!-- 侧边栏 -->
+        <aside class="sidebar">
+            <div class="sidebar-header">
+                <div class="sidebar-logo">✨</div>
+                <div class="sidebar-title">二次元天堂</div>
+            </div>
+
+            <ul class="sidebar-menu">
+                <li class="sidebar-menu-item active" data-page="dashboard">
+                    <span class="icon">🏠</span>
+                    <span>仪表板</span>
+                </li>
+                <li class="sidebar-menu-item" data-page="mailbox">
+                    <span class="icon">📮</span>
+                    <span>时间邮局</span>
+                </li>
+                <li class="sidebar-menu-item" data-page="treehole">
+                    <span class="icon">🌳</span>
+                    <span>互动树洞</span>
+                </li>
+                <li class="sidebar-menu-item" data-page="calendar">
+                    <span class="icon">📅</span>
+                    <span>个性日历</span>
+                </li>
+                <li class="sidebar-menu-item" data-page="chat">
+                    <span class="icon">💬</span>
+                    <span>在线聊天</span>
+                </li>
+                <li class="sidebar-menu-item" data-page="games">
+                    <span class="icon">🎮</span>
+                    <span>小游戏</span>
+                </li>
+                <li class="sidebar-menu-item" data-page="profile">
+                    <span class="icon">👤</span>
+                    <span>个人资料</span>
+                </li>
+            </ul>
+
+            <div class="sidebar-footer">
+                <button class="logout-btn" id="logoutBtn">登出</button>
+            </div>
+        </aside>
+
+        <!-- 主内容 -->
+        <main class="main-content">
+            <!-- 仪表板头部 -->
+            <div class="dashboard-header">
+                <h1 class="dashboard-title">欢迎回来！</h1>
+                <div class="dashboard-actions">
+                    <button class="theme-toggle" id="themeToggle">
+                        <span class="toggle-icon">🌙</span>
+                    </button>
+                </div>
+            </div>
+
+            <!-- 用户卡片 -->
+            <div class="user-card" id="userCard">
+                <img src="" alt="头像" class="user-avatar" id="userAvatar">
+                <div class="user-info">
+                    <h2 id="userName">加载中...</h2>
+                    <div class="user-stats">
+                        <div class="stat-item">
+                            <span class="stat-label">邮件总数</span>
+                            <span class="stat-value" id="mailCount">0</span>
+                        </div>
+                        <div class="stat-item">
+                            <span class="stat-label">树洞发布</span>
+                            <span class="stat-value" id="holeCount">0</span>
+                        </div>
+                        <div class="stat-item">
+                            <span class="stat-label">活跃度</span>
+                            <span class="stat-value" id="activeScore">0</span>
+                        </div>
+                    </div>
+                </div>
+                <div class="user-level-section">
+                    <div class="level-badge" id="userLevel">Lv.1</div>
+                    <div class="exp-bar">
+                        <div class="exp-fill" id="expFill"></div>
+                    </div>
+                    <div class="exp-text" id="expText">0 / 200 EXP</div>
+                </div>
+            </div>
+
+            <!-- 快速访问 -->
+            <div class="quick-access">
+                <div class="quick-card" data-action="mailbox">
+                    <div class="quick-icon">📮</div>
+                    <div class="quick-title">写邮件</div>
+                    <div class="quick-description">给未来的自己或朋友</div>
+                </div>
+                <div class="quick-card" data-action="treehole">
+                    <div class="quick-icon">🌳</div>
+                    <div class="quick-title">发树洞</div>
+                    <div class="quick-description">分享你的秘密</div>
+                </div>
+                <div class="quick-card" data-action="calendar">
+                    <div class="quick-icon">📅</div>
+                    <div class="quick-title">查日历</div>
+                    <div class="quick-description">管理你的目标</div>
+                </div>
+                <div class="quick-card" data-action="chat">
+                    <div class="quick-icon">💬</div>
+                    <div class="quick-title">进聊天</div>
+                    <div class="quick-description">与他人交流</div>
+                </div>
+                <div class="quick-card" data-action="games">
+                    <div class="quick-icon">🎮</div>
+                    <div class="quick-title">玩游戏</div>
+                    <div class="quick-description">赚取奖励</div>
+                </div>
+                <div class="quick-card" data-action="profile">
+                    <div class="quick-icon">👤</div>
+                    <div class="quick-title">个人资料</div>
+                    <div class="quick-description">查看你的技能树</div>
+                </div>
+            </div>
+
+            <!-- 统计板块 -->
+            <div class="stats-grid">
+                <div class="stat-card">
+                    <div class="stat-card-value" id="statsLevel">1</div>
+                    <div class="stat-card-label">当前等级</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-card-value" id="statsExp">0</div>
+                    <div class="stat-card-label">经验值</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-card-value" id="statsLoginDays">1</div>
+                    <div class="stat-card-label">登录天数</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-card-value" id="statsAchievements">0</div>
+                    <div class="stat-card-label">获得成就</div>
+                </div>
+            </div>
+
+            <!-- 农场区 -->
+            <div class="farm-section">
+                <div class="farm-title">🌾 活跃度农场</div>
+                <p style="color: var(--text-secondary); font-size: 0.9rem; margin-bottom: 1rem;">
+                    你的活跃度会在这里以农作物的形式呈现。多多参与活动，让你的农场生机勃勃吧！
+                </p>
+                <div class="farm-area" id="farmArea">
+                    <!-- 农作物会动态生成 -->
+                </div>
+            </div>
+
+            <!-- 最近活动 -->
+            <div class="activity-section">
+                <div class="activity-title">📝 最近活动</div>
+                <div id="activityList">
+                    <div class="empty-state">
+                        <div class="empty-state-icon">📭</div>
+                        <p>还没有活动，开始探索吧！</p>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <script src="js/utils.js"></script>
+    <script src="js/db.js"></script>
+    <script src="js/api.js"></script>
+    <script src="js/router.js"></script>
+
+    <script>
+        // 检查登录状态
+        function checkAuth() {
+            if (!api.isAuthenticated()) {
+                window.location.href = 'start.html';
+                return false;
+            }
+            return true;
+        }
+
+        // 初始化仪表板
+        function initDashboard() {
+            if (!checkAuth()) return;
+
+            const currentUser = api.getCurrentUser();
+            const stats = api.getUserStats();
+            const level = api.getUserLevel();
+
+            // 更新用户信息
+            document.getElementById('userName').textContent = currentUser.username;
+            document.getElementById('userAvatar').src = currentUser.avatar || 'res/胡桃（核心素材）.png';
+            
+            // 更新统计数据
+            document.getElementById('mailCount').textContent = currentUser.stats?.totalMails || 0;
+            document.getElementById('holeCount').textContent = currentUser.stats?.totalTreeHoles || 0;
+            document.getElementById('activeScore').textContent = currentUser.stats?.activeScore || 0;
+
+            // 更新等级信息
+            document.getElementById('userLevel').textContent = `Lv.${currentUser.level}`;
+            document.getElementById('statsLevel').textContent = currentUser.level;
+            document.getElementById('statsExp').textContent = currentUser.exp;
+            document.getElementById('expFill').style.width = `${level.success ? level.expProgress : 0}%`;
+            document.getElementById('expText').textContent = `${currentUser.exp} / ${level.success ? level.nextLevelExp : 200} EXP`;
+
+            // 更新其他统计
+            document.getElementById('statsLoginDays').textContent = stats.success ? stats.registeredDays : 1;
+            document.getElementById('statsAchievements').textContent = '0'; // 暂时固定
+
+            // 更新农场
+            updateFarm();
+
+            // 主题切换
+            const themeToggle = document.getElementById('themeToggle');
+            themeToggle.addEventListener('click', () => {
+                document.body.classList.toggle('dark-mode');
+                const isDark = document.body.classList.contains('dark-mode');
+                localStorage.setItem('theme', isDark ? 'dark' : 'light');
+                updateThemeIcon();
+            });
+
+            function updateThemeIcon() {
+                const isDark = document.body.classList.contains('dark-mode');
+                themeToggle.querySelector('.toggle-icon').textContent = isDark ? '☀️' : '🌙';
+            }
+
+            const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+            const savedTheme = localStorage.getItem('theme');
+            if (savedTheme === 'dark' || (!savedTheme && prefersDark)) {
+                document.body.classList.add('dark-mode');
+            }
+            updateThemeIcon();
+
+            // 快速访问卡片点击
+            document.querySelectorAll('.quick-card').forEach(card => {
+                card.addEventListener('click', () => {
+                    const action = card.getAttribute('data-action');
+                    window.location.href = `apps/${action}.html`;
+                });
+            });
+
+            // 侧边栏菜单点击
+            document.querySelectorAll('.sidebar-menu-item').forEach(item => {
+                item.addEventListener('click', () => {
+                    const page = item.getAttribute('data-page');
+                    
+                    document.querySelectorAll('.sidebar-menu-item').forEach(i => {
+                        i.classList.remove('active');
+                    });
+                    item.classList.add('active');
+
+                    if (page === 'dashboard') {
+                        location.reload();
+                    } else {
+                        window.location.href = `apps/${page}.html`;
+                    }
+                });
+            });
+
+            // 登出按钮
+            document.getElementById('logoutBtn').addEventListener('click', () => {
+                api.logout();
+                window.location.href = 'start.html';
+            });
+        }
+
+        // 更新农场
+        function updateFarm() {
+            const activeScore = api.getCurrentUser().stats?.activeScore || 0;
+            const cropTypes = ['🌾', '🌻', '🌹', '🥕', '🍆'];
+            const farmArea = document.getElementById('farmArea');
+            
+            farmArea.innerHTML = '';
+            
+            // 根据活跃度生成农作物
+            const cropCount = Math.min(Math.floor(activeScore / 10) + 1, 15);
+            for (let i = 0; i < cropCount; i++) {
+                const crop = Utils.createElement('div', 'crop' + (i < 5 ? ' growing' : ''));
+                crop.textContent = cropTypes[i % cropTypes.length];
+                farmArea.appendChild(crop);
+            }
+
+            if (cropCount === 0) {
+                farmArea.innerHTML = '<p style="grid-column: 1/-1; color: var(--text-secondary);">开始活动来种植作物吧！</p>';
+            }
+        }
+
+        // 页面加载
+        document.addEventListener('DOMContentLoaded', initDashboard);
+    </script>
+</body>
+</html>

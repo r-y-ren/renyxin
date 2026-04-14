@@ -1,0 +1,758 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>欢迎来到二次元天堂 - Start</title>
+    <link rel="stylesheet" href="styles.css">
+    <style>
+        /* 开始页面特定样式 */
+        .start-page {
+            min-height: 100vh;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            overflow: hidden;
+            position: relative;
+        }
+
+        /* 多层视差背景 */
+        .parallax-bg {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 0;
+            pointer-events: none;
+        }
+
+        .parallax-layer {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            background-size: cover;
+            background-position: center;
+            opacity: 0.15;
+        }
+
+        .parallax-layer:nth-child(1) {
+            background-image: linear-gradient(135deg, rgba(255,107,157,0.3), rgba(192,108,132,0.2));
+            z-index: 1;
+        }
+
+        .parallax-layer:nth-child(2) {
+            background-image: linear-gradient(45deg, rgba(118,75,162,0.2), rgba(102,126,234,0.15));
+            z-index: 2;
+        }
+
+        .parallax-layer:nth-child(3) {
+            background-image: radial-gradient(circle at 30% 50%, rgba(255,200,100,0.1), transparent);
+            z-index: 3;
+        }
+
+        .start-container {
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 2rem;
+            position: relative;
+            z-index: 10;
+        }
+
+        .start-bg-decoration {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            z-index: 0;
+            pointer-events: none;
+        }
+
+        .decoration-circle {
+            position: absolute;
+            border-radius: 50%;
+            opacity: 0.1;
+        }
+
+        .decoration-circle:nth-child(1) {
+            width: 400px;
+            height: 400px;
+            background: #ff6b9d;
+            top: -100px;
+            right: -50px;
+            animation: float 8s ease-in-out infinite;
+        }
+
+        .decoration-circle:nth-child(2) {
+            width: 300px;
+            height: 300px;
+            background: #c06c84;
+            bottom: 100px;
+            left: -100px;
+            animation: float 10s ease-in-out infinite reverse;
+        }
+
+        @keyframes float {
+            0%, 100% { transform: translateY(0) rotate(0deg); }
+            50% { transform: translateY(-30px) rotate(10deg); }
+        }
+
+        .start-content {
+            text-align: center;
+            color: white;
+            animation: fadeInUp 1s ease-out;
+            position: relative;
+            z-index: 10;
+            max-width: 800px;
+        }
+
+        .start-logo {
+            font-size: 5rem;
+            margin-bottom: 1.5rem;
+            animation: bounce 2.5s ease-in-out infinite;
+            text-shadow: 0 10px 30px rgba(0,0,0,0.3);
+        }
+
+        .start-title {
+            font-size: 3.5rem;
+            font-weight: 900;
+            margin-bottom: 0.5rem;
+            text-shadow: 0 4px 20px rgba(0,0,0,0.4);
+            letter-spacing: -1px;
+            line-height: 1.1;
+        }
+
+        .start-subtitle {
+            font-size: 1.5rem;
+            margin-bottom: 2rem;
+            opacity: 0.98;
+            font-weight: 300;
+            letter-spacing: 2px;
+            text-shadow: 0 2px 10px rgba(0,0,0,0.2);
+        }
+
+        .start-description {
+            max-width: 550px;
+            margin: 0 auto 3.5rem;
+            font-size: 1.05rem;
+            line-height: 1.7;
+            opacity: 0.92;
+            background: rgba(255,255,255,0.08);
+            padding: 2rem;
+            border-radius: 15px;
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255,255,255,0.15);
+        }
+
+        .start-buttons {
+            display: flex;
+            gap: 1.5rem;
+            justify-content: center;
+            flex-wrap: wrap;
+            margin-bottom: 3rem;
+        }
+
+        .btn-large {
+            padding: 1.2rem 3rem;
+            font-size: 1.15rem;
+            border-radius: 50px;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 1.5px;
+            transition: all 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
+            cursor: pointer;
+            border: none;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .btn-large::before {
+            content: '';
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            width: 0;
+            height: 0;
+            border-radius: 50%;
+            background: rgba(255,255,255,0.3);
+            transform: translate(-50%, -50%);
+            transition: width 0.6s, height 0.6s;
+        }
+
+        .btn-large:hover::before {
+            width: 300px;
+            height: 300px;
+        }
+
+        .btn-start-primary {
+            background: linear-gradient(135deg, #ffffff, #f0f0f0);
+            color: #667eea;
+            box-shadow: 0 15px 40px rgba(0,0,0,0.3);
+        }
+
+        .btn-start-primary:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 25px 60px rgba(0,0,0,0.4);
+        }
+
+        .btn-start-secondary {
+            background: transparent;
+            color: white;
+            border: 2px solid rgba(255,255,255,0.8);
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+        }
+
+        .btn-start-secondary:hover {
+            background: rgba(255,255,255,0.15);
+            border-color: white;
+            transform: translateY(-5px);
+            box-shadow: 0 20px 50px rgba(0,0,0,0.3);
+        }
+
+        .start-particles {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            z-index: 5;
+        }
+
+        .particle {
+            position: absolute;
+            width: 6px;
+            height: 6px;
+            border-radius: 50%;
+            background: radial-gradient(circle at 30% 30%, rgba(255,255,255,0.8), rgba(255,255,255,0.1));
+            box-shadow: 0 0 10px rgba(255,255,255,0.5);
+            animation: float 20s infinite linear;
+        }
+
+        .particle:nth-child(odd) {
+            animation-direction: reverse;
+        }
+
+        @keyframes float {
+            0%, 100% { 
+                transform: translateY(0) translateX(0) scale(1); 
+                opacity: 0; 
+            }
+            10% { 
+                opacity: 1; 
+            }
+            90% { 
+                opacity: 1; 
+            }
+            100% { 
+                transform: translateY(-100vh) translateX(100px) scale(0.5); 
+                opacity: 0; 
+            }
+        }
+
+        @keyframes bounce {
+            0%, 100% { transform: translateY(0) scale(1); }
+            50% { transform: translateY(-15px) scale(1.05); }
+        }
+
+        .start-features {
+            margin-top: 0;
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+            gap: 2rem;
+            max-width: 700px;
+            margin-left: auto;
+            margin-right: auto;
+        }
+
+        .feature-item {
+            background: rgba(255,255,255,0.12);
+            padding: 1.8rem 1.2rem;
+            border-radius: 15px;
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255,255,255,0.25);
+            transition: all 0.3s ease;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .feature-item::before {
+            content: '';
+            position: absolute;
+            top: -50%;
+            right: -50%;
+            width: 200px;
+            height: 200px;
+            background: radial-gradient(circle, rgba(255,255,255,0.1), transparent);
+            border-radius: 50%;
+            opacity: 0;
+            transition: opacity 0.3s ease;
+        }
+
+        .feature-item:hover {
+            background: rgba(255,255,255,0.20);
+            border-color: rgba(255,255,255,0.4);
+            transform: translateY(-10px);
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+        }
+
+        .feature-item:hover::before {
+            opacity: 1;
+        }
+
+        .feature-icon {
+            font-size: 2.5rem;
+            margin-bottom: 0.8rem;
+            display: block;
+            animation: bounce 2s infinite;
+        }
+
+        .feature-text {
+            font-size: 0.95rem;
+            font-weight: 600;
+            letter-spacing: 0.5px;
+            position: relative;
+            z-index: 1;
+        }
+
+        .divider {
+            width: 150px;
+            height: 2px;
+            background: linear-gradient(90deg, transparent, rgba(255,255,255,0.5), transparent);
+            margin: 3rem auto;
+        }
+
+        .legal-links {
+            margin-top: 2rem;
+            display: flex;
+            justify-content: center;
+            gap: 2.5rem;
+            font-size: 0.9rem;
+            opacity: 0.8;
+            flex-wrap: wrap;
+        }
+
+        .legal-links a {
+            color: white;
+            text-decoration: none;
+            transition: all 0.3s ease;
+            position: relative;
+            padding-bottom: 2px;
+        }
+
+        .legal-links a::after {
+            content: '';
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            width: 0;
+            height: 2px;
+            background: rgba(255,255,255,0.8);
+            transition: width 0.3s ease;
+        }
+
+        .legal-links a:hover {
+            opacity: 1;
+        }
+
+        .legal-links a:hover::after {
+            width: 100%;
+        }
+
+        /* 暗色模式 */
+        body.dark-mode .start-page {
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+        }
+
+        body.dark-mode .start-description {
+            background: rgba(255,255,255,0.05);
+            border-color: rgba(255,255,255,0.08);
+        }
+
+        @media (max-width: 768px) {
+            .start-logo {
+                font-size: 3.5rem;
+            }
+
+            .start-title {
+                font-size: 2.5rem;
+            }
+
+            .start-subtitle {
+                font-size: 1.2rem;
+            }
+
+            .start-description {
+                font-size: 0.95rem;
+                padding: 1.5rem;
+            }
+
+            .btn-large {
+                padding: 1rem 2rem;
+                font-size: 1rem;
+            }
+
+            .start-features {
+                grid-template-columns: repeat(2, 1fr);
+                gap: 1.5rem;
+            }
+
+            .legal-links {
+                gap: 1.5rem;
+                font-size: 0.8rem;
+            }
+        }
+
+        @media (max-width: 480px) {
+            .start-container {
+                padding: 1rem;
+            }
+
+            .start-logo {
+                font-size: 2.5rem;
+            }
+
+            .start-title {
+                font-size: 1.8rem;
+            }
+
+            .start-subtitle {
+                font-size: 1rem;
+            }
+
+            .start-buttons {
+                flex-direction: column;
+                gap: 1rem;
+            }
+
+            .btn-large {
+                width: 100%;
+            }
+
+            .start-features {
+                grid-template-columns: 1fr;
+                gap: 1rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- 主题切换 -->
+    <div class="theme-toggle" id="themeToggle">
+        <span class="toggle-icon">🌙</span>
+    </div>
+
+    <!-- 粒子背景 -->
+    <div class="start-particles" id="particles"></div>
+
+    <!-- 多层视差背景 -->
+    <div class="parallax-bg" id="parallaxBg">
+        <div class="parallax-layer" data-speed="0.5" style="background-image: url('res/胡桃（核心素材）.png'); background-size: cover; background-position: center;"></div>
+        <div class="parallax-layer" data-speed="0.7" style="background-image: url('res/素材\ (1).jpg'); background-size: cover; background-position: center;"></div>
+        <div class="parallax-layer" data-speed="0.9" style="background-image: linear-gradient(135deg, rgba(102,126,234,0.2), rgba(118,75,162,0.15));"></div>
+    </div>
+
+    <!-- 主内容 -->
+    <div class="start-page" id="startPage">
+        <div class="start-container">
+            <div class="start-bg-decoration" id="bgDecoration"></div>
+            <div class="start-content">
+                <div class="start-logo" id="startLogo">✨</div>
+                <h1 class="start-title">二次元天堂</h1>
+                <p class="start-subtitle">文艺创意融合地</p>
+                
+                <p class="start-description">
+                    在这里，你可以发送时间邮件、倾诉秘密、管理目标、
+                    参与社区、体验游戏。让我们一起在二次元的世界里
+                    探索、成长、创造美好的故事。
+                </p>
+
+                <div class="start-buttons">
+                    <button class="btn-large btn-start-primary" id="startBtn">立即开始</button>
+                    <button class="btn-large btn-start-secondary" id="learnBtn">了解更多</button>
+                </div>
+
+                <div class="start-features">
+                    <div class="feature-item" data-feature="mail">
+                        <div class="feature-icon">📮</div>
+                        <div class="feature-text">时间邮局</div>
+                    </div>
+                    <div class="feature-item" data-feature="hole">
+                        <div class="feature-icon">🌳</div>
+                        <div class="feature-text">树洞社区</div>
+                    </div>
+                    <div class="feature-item" data-feature="calendar">
+                        <div class="feature-icon">📅</div>
+                        <div class="feature-text">个性日历</div>
+                    </div>
+                    <div class="feature-item" data-feature="chat">
+                        <div class="feature-icon">💬</div>
+                        <div class="feature-text">在线聊天</div>
+                    </div>
+                </div>
+
+                <div class="divider"></div>
+
+                <div class="legal-links">
+                    <a href="#about">关于我们</a>
+                    <a href="#privacy">隐私政策</a>
+                    <a href="#terms">使用条款</a>
+                    <a href="#contact">联系我们</a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="js/utils.js"></script>
+    <script src="js/db.js"></script>
+    <script src="js/api.js"></script>
+    <script src="js/router.js"></script>
+    <script src="script.js"></script>
+    
+    <script>
+        // 初始化开始页面
+        function initStartPage() {
+            // =========== 高级粒子系统 ===========
+            const particlesContainer = document.getElementById('particles');
+            const particleCount = Math.max(30, window.innerWidth > 768 ? 40 : 20);
+            
+            for (let i = 0; i < particleCount; i++) {
+                const particle = Utils.createElement('div', 'particle');
+                const size = Math.random() * 4 + 3;
+                particle.style.left = Math.random() * 100 + '%';
+                particle.style.top = Math.random() * 100 + '%';
+                particle.style.width = size + 'px';
+                particle.style.height = size + 'px';
+                particle.style.animationDelay = Math.random() * 20 + 's';
+                particle.style.animationDuration = (Math.random() * 15 + 20) + 's';
+                particlesContainer.appendChild(particle);
+            }
+
+            // =========== 视差背景效果 ===========
+            const parallaxBg = document.getElementById('parallaxBg');
+            const startPage = document.getElementById('startPage');
+            
+            document.addEventListener('mousemove', (e) => {
+                if (!parallaxBg || !startPage) return;
+                
+                const x = e.clientX / window.innerWidth;
+                const y = e.clientY / window.innerHeight;
+                
+                const layers = parallaxBg.querySelectorAll('.parallax-layer');
+                layers.forEach((layer, index) => {
+                    const speed = parseFloat(layer.getAttribute('data-speed')) || 0.5;
+                    const xMove = (x - 0.5) * 20 * speed;
+                    const yMove = (y - 0.5) * 20 * speed;
+                    layer.style.transform = `translate(${xMove}px, ${yMove}px)`;
+                });
+            });
+
+            // =========== 滚动视差效果 ===========
+            window.addEventListener('scroll', () => {
+                if (!parallaxBg) return;
+                const scrollPercent = (window.scrollY / (document.documentElement.scrollHeight - window.innerHeight)) * 100;
+                parallaxBg.style.transform = `translateY(${scrollPercent * 0.5}px)`;
+            });
+
+            // =========== 装饰元素动画 ===========
+            const bgDecoration = document.getElementById('bgDecoration');
+            if (bgDecoration) {
+                for (let i = 0; i < 2; i++) {
+                    const circle = Utils.createElement('div', 'decoration-circle');
+                    bgDecoration.appendChild(circle);
+                }
+            }
+
+            // =========== 按钮事件 ===========
+            document.getElementById('startBtn').addEventListener('click', () => {
+                if (api.isAuthenticated()) {
+                    window.location.href = 'dashboard.html';
+                } else {
+                    showLoginRegisterModal();
+                }
+            });
+
+            document.getElementById('learnBtn').addEventListener('click', () => {
+                window.location.href = 'feature.html';
+            });
+
+            // =========== 主题切换 ===========
+            const themeToggle = document.getElementById('themeToggle');
+            if (themeToggle) {
+                themeToggle.addEventListener('click', () => {
+                    document.body.classList.toggle('dark-mode');
+                    const isDark = document.body.classList.contains('dark-mode');
+                    localStorage.setItem('theme', isDark ? 'dark' : 'light');
+                    updateThemeIcon();
+                });
+
+                function updateThemeIcon() {
+                    const isDark = document.body.classList.contains('dark-mode');
+                    themeToggle.querySelector('.toggle-icon').textContent = isDark ? '☀️' : '🌙';
+                }
+
+                // 初始化主题
+                const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+                const savedTheme = localStorage.getItem('theme');
+                if (savedTheme === 'dark' || (!savedTheme && prefersDark)) {
+                    document.body.classList.add('dark-mode');
+                }
+                updateThemeIcon();
+            }
+
+            // =========== 功能项交互 ===========
+            document.querySelectorAll('.feature-item').forEach(item => {
+                item.addEventListener('click', function() {
+                    const feature = this.getAttribute('data-feature');
+                    if (api.isAuthenticated()) {
+                        const modules = {
+                            'mail': 'mailbox.html',
+                            'hole': 'treehole.html',
+                            'calendar': 'calendar.html',
+                            'chat': 'chat.html'
+                        };
+                        if (modules[feature]) {
+                            window.location.href = `apps/${modules[feature]}`;
+                        }
+                    } else {
+                        showLoginRegisterModal();
+                    }
+                });
+            });
+        }
+
+        function showLoginRegisterModal() {
+            const modal = Utils.createElement('div', 'auth-modal', `
+                <div class="modal-overlay"></div>
+                <div class="modal-container" style="max-width: 400px;">
+                    <div class="modal-header">
+                        <h2 id="authTitle">登录账户</h2>
+                        <button class="modal-close">✕</button>
+                    </div>
+                    <div class="modal-body">
+                        <form id="authForm">
+                            <div id="authFields">
+                                <div class="form-group">
+                                    <label>邮箱</label>
+                                    <input type="email" id="authEmail" placeholder="输入邮箱" required>
+                                </div>
+                                <div class="form-group">
+                                    <label>密码</label>
+                                    <input type="password" id="authPassword" placeholder="输入密码" required>
+                                </div>
+                                <div class="form-group" id="usernameGroup" style="display:none;">
+                                    <label>用户名</label>
+                                    <input type="text" id="authUsername" placeholder="输入用户名">
+                                </div>
+                                <div class="form-group" id="confirmGroup" style="display:none;">
+                                    <label>确认密码</label>
+                                    <input type="password" id="authConfirm" placeholder="确认密码">
+                                </div>
+                            </div>
+                            <button type="submit" class="btn btn-primary" style="width: 100%;">登录</button>
+                        </form>
+                        <div style="text-align: center; margin-top: 1rem;">
+                            <p>还没有账户？<a href="#register" id="toggleAuth" style="color: #ff6b9d; cursor: pointer;">立即注册</a></p>
+                        </div>
+                    </div>
+                </div>
+            `);
+
+            modal.style.cssText = `
+                position: fixed;
+                top: 0;
+                left: 0;
+                width: 100%;
+                height: 100%;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                z-index: 2000;
+            `;
+
+            document.body.appendChild(modal);
+
+            let isLogin = true;
+            const closeBtn = modal.querySelector('.modal-close');
+            const overlay = modal.querySelector('.modal-overlay');
+            const toggle = modal.querySelector('#toggleAuth');
+            const form = modal.querySelector('#authForm');
+            const titleEl = modal.querySelector('#authTitle');
+            const submitBtn = form.querySelector('button[type="submit"]');
+            const usernameGroup = modal.querySelector('#usernameGroup');
+            const confirmGroup = modal.querySelector('#confirmGroup');
+
+            closeBtn.addEventListener('click', () => modal.remove());
+            overlay.addEventListener('click', () => modal.remove());
+
+            toggle.addEventListener('click', (e) => {
+                e.preventDefault();
+                isLogin = !isLogin;
+                usernameGroup.style.display = isLogin ? 'none' : 'block';
+                confirmGroup.style.display = isLogin ? 'none' : 'block';
+                titleEl.textContent = isLogin ? '登录账户' : '注册账户';
+                submitBtn.textContent = isLogin ? '登录' : '注册';
+            });
+
+            form.addEventListener('submit', async (e) => {
+                e.preventDefault();
+                const email = modal.querySelector('#authEmail').value;
+                const password = modal.querySelector('#authPassword').value;
+
+                if (isLogin) {
+                    const result = api.login(email, password);
+                    if (result.success) {
+                        Utils.showToast('✓ 登录成功！', '🎉');
+                        setTimeout(() => {
+                            window.location.href = 'dashboard.html';
+                        }, 1000);
+                    } else {
+                        Utils.showToast('✗ ' + result.error, '❌');
+                    }
+                } else {
+                    const username = modal.querySelector('#authUsername').value;
+                    const confirm = modal.querySelector('#authConfirm').value;
+                    
+                    if (!Utils.validateUsername(username)) {
+                        Utils.showToast('✗ 用户名应为3-20个字符', '❌');
+                        return;
+                    }
+                    if (password !== confirm) {
+                        Utils.showToast('✗ 两次密码不一致', '❌');
+                        return;
+                    }
+                    
+                    const result = api.register({ username, email, password });
+                    if (result.success) {
+                        Utils.showToast('✓ 注册成功！', '🎉');
+                        setTimeout(() => {
+                            window.location.href = 'dashboard.html';
+                        }, 1000);
+                    } else {
+                        Utils.showToast('✗ ' + result.error, '❌');
+                    }
+                }
+            });
+        }
+
+        // 页面加载时初始化
+        document.addEventListener('DOMContentLoaded', initStartPage);
+
+        // 窗口大小改变时刷新粒子
+        window.addEventListener('resize', () => {
+            document.getElementById('particles').innerHTML = '';
+            const particleCount = Math.max(30, window.innerWidth > 768 ? 40 : 20);
+            for (let i = 0; i < particleCount; i++) {
+                const particle = Utils.createElement('div', 'particle');
+                const size = Math.random() * 4 + 3;
+                particle.style.left = Math.random() * 100 + '%';
+                particle.style.top = Math.random() * 100 + '%';
+                particle.style.width = size + 'px';
+                particle.style.height = size + 'px';
+                particle.style.animationDelay = Math.random() * 20 + 's';
+                particle.style.animationDuration = (Math.random() * 15 + 20) + 's';
+                document.getElementById('particles').appendChild(particle);
+            }
+        });
+    </script>
+</body>
+</html>
