@@ -63,6 +63,11 @@ type PositionedGlyph = {
   y: number; // 绘制 Y 坐标（基线）
 };
 
+type GlyphProjection = {
+  glyphs: PositionedGlyph[];
+  requiredHeight: number;
+};
+
 // ==================== 工具函数 ====================
 
 /**
@@ -218,24 +223,22 @@ function computeLineSlots(
  * 2. 对每行计算可用槽位
  * 3. 在每个槽位内调用 pretext 库的 layoutNextLineRange 获取能放入的字符范围
  * 4. 获取实际文本，按字素分割并累加每个字符的宽度，记录坐标
+ * 5. 额外返回本次排版实际需要的总高度，用于驱动容器自适应
  */
 function buildGlyphProjection(
   ctx: CanvasRenderingContext2D,
   prepared: PreparedTextWithSegments,
   canvasSize: Size,
   obstacle: CapsuleObstacle,
-): PositionedGlyph[] {
+): GlyphProjection {
   const innerWidth = Math.max(0, canvasSize.width - CANVAS_PADDING_X * 2);
-  const innerHeight = Math.max(0, canvasSize.height - CANVAS_PADDING_Y * 2);
   const baselineOffset = BODY_FONT_SIZE * 0.84; // 基线偏移经验值，使文字垂直居中
   const glyphs: PositionedGlyph[] = [];
   let cursor: LayoutCursor = { segmentIndex: 0, graphemeIndex: 0 };
+  let lastOccupiedBottom = CANVAS_PADDING_Y;
 
-  for (
-    let lineTop = 0;
-    lineTop + BODY_LINE_HEIGHT <= innerHeight;
-    lineTop += BODY_LINE_HEIGHT
-  ) {
+  for (let lineIndex = 0; lineIndex < 5000; lineIndex += 1) {
+    const lineTop = lineIndex * BODY_LINE_HEIGHT;
     const lineBottom = lineTop + BODY_LINE_HEIGHT;
     const slots = computeLineSlots(lineTop, lineBottom, innerWidth, obstacle);
     let consumedOnBand = false; // 标记当前行是否至少排入了一些字符
@@ -243,8 +246,13 @@ function buildGlyphProjection(
     for (const slot of slots) {
       const range = layoutNextLineRange(prepared, cursor, slot.width);
       if (range === null) {
-        // 文本已排完
-        return glyphs;
+        return {
+          glyphs,
+          requiredHeight: Math.max(
+            STAGE_MIN_HEIGHT,
+            Math.ceil(lastOccupiedBottom + CANVAS_PADDING_Y),
+          ),
+        };
       }
 
       if (sameCursor(cursor, range.end)) {
@@ -264,6 +272,10 @@ function buildGlyphProjection(
 
       cursor = range.end;
       consumedOnBand = true;
+      lastOccupiedBottom = Math.max(
+        lastOccupiedBottom,
+        CANVAS_PADDING_Y + lineBottom,
+      );
     }
 
     // 如果该行没有任何字符被消费，说明遇到了无法排版的极窄区域，直接跳过行（很少发生）
@@ -272,7 +284,13 @@ function buildGlyphProjection(
     }
   }
 
-  return glyphs;
+  return {
+    glyphs,
+    requiredHeight: Math.max(
+      STAGE_MIN_HEIGHT,
+      Math.ceil(lastOccupiedBottom + CANVAS_PADDING_Y),
+    ),
+  };
 }
 
 /**
@@ -300,9 +318,11 @@ export default function DraggableCharacter({
     width: 0,
     height: 0,
   });
+  const [stageHeight, setStageHeight] = useState(STAGE_MIN_HEIGHT);
   // 预处理后的文本结构（包含分段和度量信息）
   const [preparedText, setPreparedText] =
     useState<PreparedTextWithSegments | null>(null);
+  const hasCenteredCharacterRef = useRef(false);
 
   // 将传入的 Markdown HTML 转换为纯文本（用于 Canvas 绘制）
   const plainText = useMemo(
@@ -374,6 +394,18 @@ export default function DraggableCharacter({
     };
   }, [containerSize.height, containerSize.width]);
 
+  useEffect(() => {
+    if (hasCenteredCharacterRef.current) return;
+    if (containerSize.width <= 0 || containerSize.height <= 0) return;
+
+    const centeredX = (containerSize.width - CHARACTER_WIDTH) / 2 - BASE_LEFT;
+    const centeredY = (containerSize.height - CHARACTER_HEIGHT) / 2 - BASE_TOP;
+
+    x.set(centeredX);
+    y.set(centeredY);
+    hasCenteredCharacterRef.current = true;
+  }, [containerSize.height, containerSize.width, x, y]);
+
   // ==================== Canvas 绘制函数 ====================
   const drawCanvas = useCallback(() => {
     const canvas = canvasRef.current;
@@ -422,19 +454,30 @@ export default function DraggableCharacter({
       height: CHARACTER_HEIGHT - HITBOX_SHRINK * 2,
     };
 
-    // 计算所有字符的绘制坐标
-    const glyphs = buildGlyphProjection(
+    // 计算所有字符的绘制坐标与所需总高度
+    const { glyphs, requiredHeight } = buildGlyphProjection(
       ctx,
       preparedText,
       { width, height },
       obstacle,
     );
 
+    if (requiredHeight !== stageHeight) {
+      setStageHeight(requiredHeight);
+    }
+
     // 逐个绘制字符
     for (const glyph of glyphs) {
       ctx.fillText(glyph.char, glyph.x, glyph.y);
     }
-  }, [containerSize.height, containerSize.width, preparedText, x, y]);
+  }, [
+    containerSize.height,
+    containerSize.width,
+    preparedText,
+    stageHeight,
+    x,
+    y,
+  ]);
 
   // ==================== 拖拽时触发重绘 ====================
   useEffect(() => {
@@ -456,6 +499,7 @@ export default function DraggableCharacter({
       unsubscribeY();
       if (frameRef.current !== null) {
         cancelAnimationFrame(frameRef.current);
+        frameRef.current = null; // 必须归零，否则新 effect 的 scheduleDraw 会被提前 return 跳过
       }
     };
   }, [drawCanvas, x, y]);
@@ -493,10 +537,14 @@ export default function DraggableCharacter({
           <article className="relative rounded-[24px] border border-genshin-gold/20 bg-[linear-gradient(135deg,rgba(236,229,216,0.14),rgba(12,18,32,0.48))] px-6 py-6 md:px-8 md:py-8 shadow-[0_12px_40px_rgba(0,0,0,0.24)] backdrop-blur-xl">
             <div className="pointer-events-none absolute inset-0 bg-[linear-gradient(180deg,rgba(236,229,216,0.08),transparent_38%,rgba(184,147,109,0.05)_100%)]" />
 
-            {/* 文字绘制区域（固定高度，用于 Canvas） */}
+            {/* 文字绘制区域（根据排版结果动态高度） */}
             <div
               ref={stageRef}
-              className="relative z-10 h-[560px] md:h-[620px] rounded-[18px] overflow-hidden"
+              className="relative z-10 rounded-[18px] overflow-hidden"
+              style={{
+                height: `${stageHeight}px`,
+                minHeight: `${STAGE_MIN_HEIGHT}px`,
+              }}
             >
               {/* Canvas 画布：绘制排版后的文字 */}
               <canvas

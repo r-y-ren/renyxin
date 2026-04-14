@@ -1,312 +1,515 @@
-import React, { useState } from "react";
+import React, { useMemo, useRef, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
+import DraggableCard from "./DraggableCard";
 
-interface SkillNode {
+interface SkillInput {
   name: string;
-  x: number;
-  y: number;
-  connections: string[];
   proficiency: number;
+  class: string;
   description?: string;
 }
 
+interface ComputedSkill extends SkillInput {
+  x: number;
+  y: number;
+  classIndex: number;
+}
+
+interface ClusterCenter {
+  x: number;
+  y: number;
+  className: string;
+  classIndex: number;
+}
+
 interface SkillConstellationProps {
-  skills: SkillNode[];
+  skills: SkillInput[];
   width?: number;
   height?: number;
 }
 
+const STAR_PATH =
+  "M12 0 L15.5 7.5 L24 9.5 L16.5 14.5 L18 24 L12 19.5 L6 24 L7.5 14.5 L0 9.5 L8.5 7.5 Z";
+
+const CLASS_COLORS = [
+  "#d4af70",
+  "#76c8df",
+  "#8ba5ff",
+  "#8fd9b6",
+  "#e9a46f",
+  "#d89ad7",
+  "#7bc9a9",
+];
+
+function getStarSize(proficiency: number): number {
+  return Math.max(18, (proficiency / 100) * 40);
+}
+
+function computeClassLayout(
+  items: SkillInput[],
+  canvasW: number,
+  canvasH: number,
+): { skills: ComputedSkill[]; clusters: ClusterCenter[] } {
+  const classMap = new Map<string, SkillInput[]>();
+  for (const item of items) {
+    const c = (item.class || "未分类").trim();
+    if (!classMap.has(c)) classMap.set(c, []);
+    classMap.get(c)!.push(item);
+  }
+
+  const classNames = Array.from(classMap.keys());
+  const classCount = classNames.length;
+  const cx = canvasW / 2;
+  const cy = canvasH / 2;
+
+  // Cluster ring radius scales with canvas size and number of classes.
+  // Single class → stays at center
+  const R_cluster =
+    classCount <= 1
+      ? 0
+      : Math.min(canvasW * 0.32, canvasH * 0.34) *
+        Math.min(1.2, 0.7 + classCount * 0.12);
+
+  const clusters: ClusterCenter[] = [];
+  const computedSkills: ComputedSkill[] = [];
+
+  classNames.forEach((className, classIndex) => {
+    const members = classMap.get(className)!;
+    const memberCount = members.length;
+
+    // Evenly spread cluster centers, start from top (-π/2)
+    const clusterAngle =
+      classCount <= 1
+        ? 0
+        : (classIndex / classCount) * Math.PI * 2 - Math.PI / 2;
+
+    const clusterX = cx + Math.cos(clusterAngle) * R_cluster;
+    const clusterY = cy + Math.sin(clusterAngle) * R_cluster;
+
+    clusters.push({ x: clusterX, y: clusterY, className, classIndex });
+
+    // Per-cluster spoke radius scales with sqrt of member count
+    const R_star =
+      memberCount <= 1 ? 0 : Math.min(80, 28 + Math.sqrt(memberCount) * 24);
+
+    members.forEach((skill, memberIndex) => {
+      const starAngle =
+        memberCount <= 1
+          ? 0
+          : (memberIndex / memberCount) * Math.PI * 2 - Math.PI / 2;
+
+      computedSkills.push({
+        ...skill,
+        class: skill.class || "未分类",
+        x: clusterX + Math.cos(starAngle) * R_star,
+        y: clusterY + Math.sin(starAngle) * R_star,
+        classIndex,
+      });
+    });
+  });
+
+  return { skills: computedSkills, clusters };
+}
 export default function SkillConstellation({
   skills = [],
   width = 1000,
-  height = 600,
+  height = 620,
 }: SkillConstellationProps) {
-  const [selectedSkill, setSelectedSkill] = useState<SkillNode | null>(null);
-  const [hoveredSkill, setHoveredSkill] = useState<SkillNode | null>(null);
+  const svgRef = useRef<SVGSVGElement | null>(null);
+  const [selectedName, setSelectedName] = useState<string | null>(null);
+  const [hoveredName, setHoveredName] = useState<string | null>(null);
 
-  const safeSkills: SkillNode[] = Array.isArray(skills)
-    ? skills
-    : Array.isArray((skills as any)?.default)
-      ? (skills as any).default
-      : [];
+  const safeSkills: SkillInput[] = useMemo(() => {
+    const raw = Array.isArray(skills)
+      ? skills
+      : Array.isArray(
+            (skills as unknown as { default?: SkillInput[] })?.default,
+          )
+        ? (skills as unknown as { default: SkillInput[] }).default
+        : [];
+    const seen = new Set<string>();
+    return raw.filter((item) => {
+      const name = (item.name || "").trim();
+      if (!name) return false;
+      if (seen.has(name)) return false;
+      seen.add(name);
+      return true;
+    });
+  }, [skills]);
 
-  const getSkillByName = (name: string) =>
-    safeSkills.find((skill: SkillNode) => skill.name === name);
+  const { skills: layoutSkills, clusters } = useMemo(
+    () => computeClassLayout(safeSkills, width, height),
+    [safeSkills, width, height],
+  );
 
-  // 星星路径 (更锐利的原神命之座风格)
-  const starPath =
-    "M12 0 L15.5 7.5 L24 9.5 L16.5 14.5 L18 24 L12 19.5 L6 24 L7.5 14.5 L0 9.5 L8.5 7.5 Z";
+  const skillMap = useMemo(() => {
+    const map = new Map<string, ComputedSkill>();
+    for (const skill of layoutSkills) map.set(skill.name, skill);
+    return map;
+  }, [layoutSkills]);
 
-  // 根据熟练度计算大小
-  const getStarSize = (proficiency: number) =>
-    Math.max(20, (proficiency / 100) * 42);
+  const getClassColor = (classIndex: number): string =>
+    CLASS_COLORS[classIndex % CLASS_COLORS.length];
+
+  const selectedSkill = selectedName
+    ? (skillMap.get(selectedName) ?? null)
+    : null;
+  const hoveredSkill = hoveredName ? (skillMap.get(hoveredName) ?? null) : null;
+
+  const sortedSkills = useMemo(
+    () => [...layoutSkills].sort((a, b) => b.proficiency - a.proficiency),
+    [layoutSkills],
+  );
+
+  const classCount = clusters.length;
 
   if (safeSkills.length === 0) {
     return (
       <div className="relative w-full min-h-[300px] bg-genshin-dark rounded-3xl border border-genshin-gold/20 p-8 flex items-center justify-center">
-        <div className="text-center">
-          <p className="text-white text-xl font-semibold mb-2">
-            Debug: 未收到有效的技能数据
-          </p>
-          <p className="text-genshin-light/60 text-sm">
-            请检查 blog.astro 中的 skills props 或 JSON 导入路径。
-          </p>
-        </div>
+        <p className="text-genshin-light/60 text-xl">还没有添加任何技能</p>
       </div>
     );
   }
 
   return (
-    <div className="relative w-full bg-genshin-dark overflow-hidden">
-      {/* 星空背景 */}
-      <div className="absolute inset-0 starfield-bg pointer-events-none" />
+    <div className="w-full space-y-20">
+      <div className="relative w-full bg-genshin-dark overflow-hidden rounded-3xl border border-genshin-gold/15">
+        <div className="absolute inset-0 starfield-bg pointer-events-none" />
 
-      <svg
-        width={width}
-        height={height}
-        className="relative z-10 block"
-        style={{ background: "transparent" }}
-      >
-        <defs>
-          {/* 发光滤镜 */}
-          <filter id="glow" x="-50%" y="-50%" width="200%" height="200%">
-            <feGaussianBlur stdDeviation="3" result="coloredBlur" />
-            <feMerge>
-              <feMergeNode in="coloredBlur" />
-              <feMergeNode in="SourceGraphic" />
-            </feMerge>
-          </filter>
-        </defs>
+        <svg
+          ref={svgRef}
+          viewBox={`0 0 ${width} ${height}`}
+          className="relative z-10 block w-full"
+          style={{
+            background: "transparent",
+            aspectRatio: `${width} / ${height}`,
+          }}
+        >
+          <defs>
+            <filter id="sc-glow" x="-50%" y="-50%" width="200%" height="200%">
+              <feGaussianBlur stdDeviation="2.5" result="coloredBlur" />
+              <feMerge>
+                <feMergeNode in="coloredBlur" />
+                <feMergeNode in="SourceGraphic" />
+              </feMerge>
+            </filter>
+          </defs>
 
-        {/* 连线 */}
-        {safeSkills.map((skill, index) =>
-          skill.connections.map((connName) => {
-            const connSkill = getSkillByName(connName);
-            if (!connSkill) return null;
-            return (
+          {/* Radial spokes: cluster center → each member star */}
+          {clusters.map((cluster) => {
+            const color = getClassColor(cluster.classIndex);
+            const members = layoutSkills.filter(
+              (s) => s.classIndex === cluster.classIndex,
+            );
+            return members.map((skill, idx) => (
               <motion.line
-                key={`${skill.name}-${connName}`}
-                x1={skill.x}
-                y1={skill.y}
-                x2={connSkill.x}
-                y2={connSkill.y}
-                stroke="rgba(236, 229, 216, 0.35)"
-                strokeWidth="3"
+                key={`spoke-${skill.name}`}
+                x1={cluster.x}
+                y1={cluster.y}
+                x2={skill.x}
+                y2={skill.y}
+                stroke={`${color}77`}
+                strokeWidth={1.5}
                 strokeLinecap="round"
-                filter="url(#glow)"
-                style={{ mixBlendMode: "screen" }}
-                initial={{ pathLength: 0, opacity: 0 }}
-                animate={{ pathLength: 1, opacity: 1 }}
+                filter="url(#sc-glow)"
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 0.7 }}
                 transition={{
-                  duration: 1.8,
-                  delay: index * 0.08,
+                  duration: 0.6,
+                  delay: idx * 0.06,
                   ease: "easeOut",
                 }}
               />
+            ));
+          })}
+
+          {/* Cluster center dots + labels */}
+          {clusters.map((cluster) => {
+            const color = getClassColor(cluster.classIndex);
+            return (
+              <g key={`cluster-${cluster.className}`}>
+                <motion.circle
+                  cx={cluster.x}
+                  cy={cluster.y}
+                  r={5}
+                  fill={color}
+                  filter="url(#sc-glow)"
+                  initial={{ scale: 0, opacity: 0 }}
+                  animate={{ scale: 1, opacity: 0.85 }}
+                  transition={{ duration: 0.4, delay: 0.1 }}
+                />
+                <motion.text
+                  x={cluster.x}
+                  y={cluster.y - 13}
+                  textAnchor="middle"
+                  fill={color}
+                  fontSize="13"
+                  fontFamily="Georgia, serif"
+                  style={{ pointerEvents: "none", userSelect: "none" }}
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 0.9 }}
+                  transition={{ duration: 0.5, delay: 0.25 }}
+                >
+                  {cluster.className}
+                </motion.text>
+              </g>
             );
-          }),
-        )}
+          })}
 
-        {/* 星星节点 */}
-        {safeSkills.map((skill, index) => {
-          const size = getStarSize(skill.proficiency);
-          return (
-            <motion.g
-              key={skill.name}
-              style={{ transformOrigin: `${skill.x}px ${skill.y}px` }}
-              initial={{ opacity: 0, scale: 0 }}
-              animate={{ opacity: 1, scale: 1 }}
-              transition={{
-                duration: 0.55,
-                delay: index * 0.08,
-                ease: "easeOut",
-              }}
-            >
-              <motion.path
-                d={starPath}
-                fill="rgba(236, 229, 216, 0.92)"
-                stroke="rgba(236, 229, 216, 0.4)"
-                strokeWidth="1.2"
-                filter="url(#glow)"
-                transform={`translate(${skill.x - 12}, ${skill.y - 12}) scale(${size / 24})`}
-                animate={{
-                  opacity: [0.65, 1, 0.65],
-                  rotate: [0, 5, 0],
-                }}
-                transition={{
-                  duration: 4 + index * 0.4,
-                  repeat: Infinity,
-                  ease: "easeInOut",
-                  delay: index * 0.2,
-                }}
-                onClick={() => setSelectedSkill(skill)}
-                onMouseEnter={() => setHoveredSkill(skill)}
-                onMouseLeave={() => setHoveredSkill(null)}
-                className="cursor-pointer"
-              />
-            </motion.g>
-          );
-        })}
-      </svg>
-
-      {/* 悬浮信息框 */}
-      <AnimatePresence mode="wait">
-        {hoveredSkill &&
-          !selectedSkill &&
-          (() => {
-            // ── 边缘碰撞检测 ──────────────────────────────────────────
-            const TOOLTIP_W = 200; // 弹窗估计宽度（minWidth）
-            const TOOLTIP_H = 140; // 弹窗估计高度（含 padding）
-            const H_OFFSET = 28; // 星星右侧水平间距
-            const V_OFFSET = 38; // 默认垂直偏移（相对星心向上）
-            const EDGE_PAD = 12; // 翻转后与星星的间距
-
-            const nearBottom = height - hoveredSkill.y < 150;
-            const nearRight =
-              width - hoveredSkill.x < TOOLTIP_W + H_OFFSET + 20;
-
-            const tooltipLeft = nearRight
-              ? hoveredSkill.x - TOOLTIP_W - EDGE_PAD // 向左翻转
-              : hoveredSkill.x + H_OFFSET; // 默认右侧
-
-            const tooltipTop = nearBottom
-              ? hoveredSkill.y - TOOLTIP_H - EDGE_PAD // 向上翻转
-              : hoveredSkill.y - V_OFFSET; // 默认位置
-
-            // 入场动画方向跟随翻转方向，避免从错误方向滑入
-            const initX = nearRight ? -8 : 8;
-            const initY = nearBottom ? -8 : 8;
-            // ──────────────────────────────────────────────────────────
+          {/* Stars */}
+          {layoutSkills.map((skill, index) => {
+            const size = getStarSize(skill.proficiency);
+            const color = getClassColor(skill.classIndex);
+            const isActive =
+              hoveredName === skill.name || selectedName === skill.name;
 
             return (
-              <motion.div
-                key={hoveredSkill.name}
-                initial={{ opacity: 0, scale: 0.82, x: initX, y: initY }}
-                animate={{ opacity: 1, scale: 1, x: 0, y: 0 }}
-                exit={{ opacity: 0, scale: 0.82, x: initX, y: initY }}
-                transition={{ duration: 0.22, ease: "easeOut" }}
-                className="absolute glass-panel p-4 rounded-3xl border border-genshin-gold/20 shadow-[0_0_30px_rgba(236,229,216,0.14)] z-20 pointer-events-none"
+              <motion.g
+                key={skill.name}
                 style={{
-                  left: tooltipLeft,
-                  top: tooltipTop,
-                  minWidth: TOOLTIP_W,
-                  backdropFilter: "blur(16px)",
+                  transformOrigin: `${skill.x}px ${skill.y}px`,
+                  cursor: "pointer",
                 }}
+                initial={{ opacity: 0, scale: 0 }}
+                animate={{ opacity: 1, scale: isActive ? 1.22 : 1 }}
+                transition={{
+                  duration: 0.38,
+                  delay: index * 0.05,
+                  ease: "easeOut",
+                }}
+                onClick={() => setSelectedName(skill.name)}
+                onMouseEnter={() => setHoveredName(skill.name)}
+                onMouseLeave={() =>
+                  setHoveredName((prev) => (prev === skill.name ? null : prev))
+                }
               >
-                <h3 className="text-genshin-gold font-bold text-lg mb-2">
-                  {hoveredSkill.name}
-                </h3>
-                <p className="text-genshin-light/80 text-sm leading-relaxed">
-                  {hoveredSkill.description || "暂无描述"}
-                </p>
-                <div className="mt-3 text-xs uppercase tracking-[0.2em] text-genshin-light/60">
-                  熟练度 {hoveredSkill.proficiency}%
-                </div>
-              </motion.div>
-            );
-          })()}
-      </AnimatePresence>
-
-      {/* 点击详情弹窗 */}
-      <AnimatePresence>
-        {selectedSkill && (
-          <>
-            {/* 背景遮罩 */}
-            <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              onClick={() => setSelectedSkill(null)}
-              className="fixed inset-0 bg-black/60 backdrop-blur-lg z-40"
-            />
-
-            {/* 详情弹窗 */}
-            <motion.div
-              initial={{ opacity: 0, scale: 0.8 }}
-              animate={{ opacity: 1, scale: 1 }}
-              exit={{ opacity: 0, scale: 0.8 }}
-              className="fixed inset-0 z-50 flex items-center justify-center p-4"
-            >
-              <div className="glass-panel max-w-md w-full p-8 relative">
-                {/* 关闭按钮 */}
-                <motion.button
-                  onClick={() => setSelectedSkill(null)}
-                  className="absolute top-4 right-4 w-8 h-8 rounded-full bg-genshin-accent/80 backdrop-blur-sm border border-genshin-gold/60 flex items-center justify-center group"
-                  whileHover={{ scale: 1.1 }}
-                  whileTap={{ scale: 0.95 }}
+                <motion.circle
+                  cx={skill.x}
+                  cy={skill.y}
+                  r={size * 0.9}
+                  fill={color}
+                  opacity={0.1}
+                  filter="url(#sc-glow)"
+                  animate={{ r: [size * 0.75, size * 1.1, size * 0.75] }}
+                  transition={{
+                    duration: 3 + index * 0.2,
+                    repeat: Infinity,
+                    ease: "easeInOut",
+                  }}
+                />
+                <motion.path
+                  d={STAR_PATH}
+                  fill={color}
+                  filter="url(#sc-glow)"
+                  transform={`translate(${skill.x - 12}, ${skill.y - 12}) scale(${size / 24})`}
+                  animate={{ opacity: [0.66, 1, 0.66] }}
+                  transition={{
+                    duration: 3.6 + index * 0.25,
+                    repeat: Infinity,
+                    ease: "easeInOut",
+                  }}
+                />
+                <motion.text
+                  x={skill.x}
+                  y={skill.y + size / 2 + 15}
+                  textAnchor="middle"
+                  fill="rgba(236,229,216,0.82)"
+                  fontSize="11"
+                  fontFamily="Georgia, serif"
+                  style={{ pointerEvents: "none", userSelect: "none" }}
                 >
-                  <span className="text-lg text-genshin-light group-hover:text-genshin-gold transition-colors">
-                    ✕
-                  </span>
-                </motion.button>
+                  {skill.name}
+                </motion.text>
+              </motion.g>
+            );
+          })}
+        </svg>
 
-                {/* 技能详情 */}
-                <div className="text-center">
-                  <motion.div
-                    className="w-16 h-16 mx-auto mb-4"
-                    animate={{
-                      scale: [1, 1.2, 1],
-                      opacity: [0.7, 1, 0.7],
-                    }}
-                    transition={{
-                      duration: 2,
-                      repeat: Infinity,
-                      ease: "easeInOut",
-                    }}
+        {/* Hover tooltip */}
+        <AnimatePresence mode="wait">
+          {hoveredSkill &&
+            !selectedSkill &&
+            (() => {
+              const TW = 220;
+              const TH = 160;
+              const H_OFF = 30;
+              const V_OFF = 40;
+              const EDGE = 12;
+
+              const scaleX = svgRef.current
+                ? svgRef.current.clientWidth / width
+                : 1;
+              const scaleY = svgRef.current
+                ? svgRef.current.clientHeight / height
+                : scaleX;
+              const sx = hoveredSkill.x * scaleX;
+              const sy = hoveredSkill.y * scaleY;
+              const containerW = width * scaleX;
+              const containerH = height * scaleY;
+
+              const nearBottom = containerH - sy < 170;
+              const nearRight = containerW - sx < TW + H_OFF + 20;
+              const tipLeft = nearRight ? sx - TW - EDGE : sx + H_OFF;
+              const tipTop = nearBottom ? sy - TH - EDGE : sy - V_OFF;
+              const color = getClassColor(hoveredSkill.classIndex);
+
+              return (
+                <motion.div
+                  key={hoveredSkill.name}
+                  initial={{ opacity: 0, scale: 0.84 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  exit={{ opacity: 0, scale: 0.84 }}
+                  transition={{ duration: 0.2, ease: "easeOut" }}
+                  className="absolute glass-panel p-4 rounded-2xl border shadow-[0_0_28px_rgba(236,229,216,0.12)] z-20 pointer-events-none"
+                  style={{
+                    left: tipLeft,
+                    top: tipTop,
+                    minWidth: TW,
+                    borderColor: `${color}55`,
+                    backdropFilter: "blur(18px)",
+                  }}
+                >
+                  <p
+                    className="text-xs uppercase tracking-widest mb-0.5 opacity-60"
+                    style={{ color }}
                   >
-                    <svg viewBox="0 0 24 24" className="w-full h-full">
-                      <path
-                        d={starPath}
-                        fill="rgba(236, 229, 216, 0.8)"
-                        filter="url(#glow)"
-                      />
-                    </svg>
-                  </motion.div>
-                  <h2 className="text-3xl font-bold text-genshin-gradient mb-2">
-                    {selectedSkill.name}
-                  </h2>
-                  <div className="mb-4">
-                    <p className="text-genshin-light/80 mb-2">熟练度</p>
-                    <div className="w-full bg-genshin-dark/50 rounded-full h-3">
-                      <motion.div
-                        className="bg-genshin-gold h-3 rounded-full"
-                        initial={{ width: 0 }}
-                        animate={{ width: `${selectedSkill.proficiency}%` }}
-                        transition={{ duration: 1, delay: 0.5 }}
+                    {hoveredSkill.class}
+                  </p>
+                  <h3 className="font-bold text-base mb-1.5" style={{ color }}>
+                    {hoveredSkill.name}
+                  </h3>
+                  <p className="text-genshin-light/75 text-sm leading-relaxed mb-3">
+                    {hoveredSkill.description || "暂无描述"}
+                  </p>
+                  <div className="flex items-center gap-2">
+                    <div className="flex-1 h-1.5 rounded-full overflow-hidden bg-white/10">
+                      <div
+                        className="h-full rounded-full"
+                        style={{
+                          width: `${hoveredSkill.proficiency}%`,
+                          background: color,
+                        }}
                       />
                     </div>
-                    <p className="text-genshin-gold text-sm mt-1">
-                      {selectedSkill.proficiency}%
-                    </p>
+                    <span className="text-xs text-genshin-light/60 tabular-nums">
+                      {hoveredSkill.proficiency}%
+                    </span>
                   </div>
-                  {selectedSkill.description && (
-                    <p className="text-genshin-light/90 text-sm leading-relaxed">
-                      {selectedSkill.description}
+                </motion.div>
+              );
+            })()}
+        </AnimatePresence>
+
+        {/* Selected skill modal */}
+        <AnimatePresence>
+          {selectedSkill && (
+            <>
+              <motion.div
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                onClick={() => setSelectedName(null)}
+                className="fixed inset-0 bg-black/60 backdrop-blur-lg z-40"
+              />
+              <motion.div
+                initial={{ opacity: 0, scale: 0.84, y: 12 }}
+                animate={{ opacity: 1, scale: 1, y: 0 }}
+                exit={{ opacity: 0, scale: 0.84, y: 12 }}
+                transition={{ duration: 0.24, ease: "easeOut" }}
+                className="fixed inset-0 z-50 flex items-center justify-center p-4"
+              >
+                <div className="glass-panel max-w-sm w-full p-8 relative rounded-3xl border border-genshin-gold/30">
+                  <motion.button
+                    onClick={() => setSelectedName(null)}
+                    className="absolute top-4 right-4 w-8 h-8 rounded-full bg-genshin-accent/80 border border-genshin-gold/50 flex items-center justify-center"
+                    whileHover={{ scale: 1.08 }}
+                    whileTap={{ scale: 0.95 }}
+                  >
+                    <span className="text-sm text-genshin-light leading-none">
+                      ✕
+                    </span>
+                  </motion.button>
+
+                  <div className="text-center">
+                    <p
+                      className="text-xs uppercase tracking-widest mb-1 opacity-60"
+                      style={{ color: getClassColor(selectedSkill.classIndex) }}
+                    >
+                      {selectedSkill.class}
                     </p>
-                  )}
-                  {selectedSkill.connections.length > 0 && (
-                    <div className="mt-4">
-                      <p className="text-genshin-light/80 text-sm mb-2">
-                        前置技能
-                      </p>
-                      <div className="flex flex-wrap gap-2 justify-center">
-                        {selectedSkill.connections.map((conn) => (
-                          <span
-                            key={conn}
-                            className="px-3 py-1 bg-genshin-accent/20 text-genshin-gold rounded-full text-xs"
-                          >
-                            {conn}
-                          </span>
-                        ))}
+                    <h2
+                      className="text-2xl font-bold mb-4"
+                      style={{ color: getClassColor(selectedSkill.classIndex) }}
+                    >
+                      {selectedSkill.name}
+                    </h2>
+                    <div className="mb-4 text-left">
+                      <div className="flex justify-between text-xs mb-1.5">
+                        <span className="text-genshin-light/60 uppercase tracking-widest">
+                          熟练度
+                        </span>
+                        <span className="font-bold tabular-nums text-genshin-light">
+                          {selectedSkill.proficiency}%
+                        </span>
+                      </div>
+                      <div className="w-full bg-white/8 rounded-full h-2 overflow-hidden">
+                        <motion.div
+                          className="h-full rounded-full"
+                          style={{
+                            background: getClassColor(selectedSkill.classIndex),
+                          }}
+                          initial={{ width: 0 }}
+                          animate={{ width: `${selectedSkill.proficiency}%` }}
+                          transition={{ duration: 0.75, delay: 0.15 }}
+                        />
                       </div>
                     </div>
-                  )}
+                    <p className="text-genshin-light/80 text-sm leading-relaxed text-left">
+                      {selectedSkill.description || "暂无描述"}
+                    </p>
+                  </div>
                 </div>
-              </div>
-            </motion.div>
-          </>
-        )}
-      </AnimatePresence>
+              </motion.div>
+            </>
+          )}
+        </AnimatePresence>
+      </div>
+
+      {/* Part 2: Skill Overview */}
+      <div>
+        <div className="text-center mb-10">
+          <h3
+            className="text-2xl font-bold tracking-wider mb-1.5"
+            style={{
+              background:
+                "linear-gradient(90deg, #ece5d8 0%, #d6b88e 55%, #b8936d 100%)",
+              WebkitBackgroundClip: "text",
+              WebkitTextFillColor: "transparent",
+              backgroundClip: "text",
+            }}
+          >
+            技能全览
+          </h3>
+          <p className="text-genshin-light/40 text-xs tracking-[0.28em] uppercase">
+            Skill Overview · {safeSkills.length} skills · {classCount} classes
+          </p>
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          {sortedSkills.map((skill) => (
+            <DraggableCard
+              key={skill.name}
+              title={skill.name}
+              subtitle={skill.description || "暂无描述"}
+              excerpt={`${skill.class} · 熟练度 ${skill.proficiency}%`}
+              tags={[skill.class]}
+              metadata={[`熟练度 ${skill.proficiency}%`, skill.class]}
+              accentLabel="技能"
+              onClick={() => setSelectedName(skill.name)}
+            />
+          ))}
+        </div>
+      </div>
     </div>
   );
 }

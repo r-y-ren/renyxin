@@ -1,74 +1,56 @@
 [
   {
-    "name": "JavaScript",
-    "x": 500,
-    "y": 340,
-    "connections": ["React", "Node.js", "Vue"],
-    "proficiency": 92,
-    "description": "核心编程语言，驱动前端交互与应用逻辑。"
-  },
-  {
     "name": "HTML",
-    "x": 380,
-    "y": 260,
-    "connections": ["CSS"],
     "proficiency": 90,
+    "class": "前端基础",
     "description": "网页结构语言，构建语义化与可访问内容。"
   },
   {
     "name": "CSS",
-    "x": 540,
-    "y": 250,
-    "connections": ["Tailwind CSS"],
     "proficiency": 88,
+    "class": "前端基础",
     "description": "样式语言，掌握响应式布局、动画与视觉表达。"
   },
   {
+    "name": "JavaScript",
+    "proficiency": 92,
+    "class": "前端基础",
+    "description": "核心编程语言，驱动前端交互与应用逻辑。"
+  },
+  {
     "name": "React",
-    "x": 640,
-    "y": 140,
-    "connections": ["Framer Motion", "Next.js"],
     "proficiency": 84,
+    "class": "框架",
     "description": "组件化框架，构建现代页面与复杂交互。"
   },
   {
+    "name": "Vue",
+    "proficiency": 68,
+    "class": "框架",
+    "description": "渐进式前端框架，适合单页面与组件化开发。"
+  },
+  {
     "name": "Tailwind CSS",
-    "x": 680,
-    "y": 270,
-    "connections": ["React"],
     "proficiency": 86,
+    "class": "框架",
     "description": "实用优先的 CSS 框架，快速搭建原神风格 UI。"
   },
   {
+    "name": "Framer Motion",
+    "proficiency": 78,
+    "class": "框架",
+    "description": "动画引擎，为界面提供流畅且动感的交互。"
+  },
+  {
     "name": "Node.js",
-    "x": 560,
-    "y": 440,
-    "connections": ["Express"],
     "proficiency": 76,
+    "class": "后端",
     "description": "服务器端运行时，支持 API 与构建流程。"
   },
   {
     "name": "Express",
-    "x": 660,
-    "y": 540,
-    "connections": [],
     "proficiency": 72,
-    "description": "轻量级后端框架，构建 API 与中间件。"
-  },
-  {
-    "name": "Framer Motion",
-    "x": 760,
-    "y": 170,
-    "connections": [],
-    "proficiency": 78,
-    "description": "动画引擎，为界面提供流畅且动感的交互。"
-  },
-  {
-    "name": "Vue",
-    "x": 560,
-    "y": 100,
-    "connections": [],
-    "proficiency": 68,
-    "description": "渐进式前端框架，适合单页面与组件化开发。"
+    "class": "后端",
+    "description": "轻量级后端框架，构建 RESTful API 与中间件。"
   }
 ]
