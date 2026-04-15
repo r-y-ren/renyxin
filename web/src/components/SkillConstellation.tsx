@@ -1,6 +1,8 @@
 import React, { useMemo, useRef, useState } from "react";
-import { motion, AnimatePresence } from "framer-motion";
+import { motion, AnimatePresence, useMotionValue } from "framer-motion";
 import DraggableCard from "./DraggableCard";
+
+// ─── Types ────────────────────────────────────────────────────────────────────
 
 interface SkillInput {
   name: string;
@@ -13,6 +15,9 @@ interface ComputedSkill extends SkillInput {
   x: number;
   y: number;
   classIndex: number;
+  /** Outward unit-vector * 16, for label offset direction */
+  labelDx: number;
+  labelDy: number;
 }
 
 interface ClusterCenter {
@@ -28,8 +33,7 @@ interface SkillConstellationProps {
   height?: number;
 }
 
-const STAR_PATH =
-  "M12 0 L15.5 7.5 L24 9.5 L16.5 14.5 L18 24 L12 19.5 L6 24 L7.5 14.5 L0 9.5 L8.5 7.5 Z";
+// ─── Constants ────────────────────────────────────────────────────────────────
 
 const CLASS_COLORS = [
   "#d4af70",
@@ -41,9 +45,29 @@ const CLASS_COLORS = [
   "#7bc9a9",
 ];
 
-function getStarSize(proficiency: number): number {
-  return Math.max(18, (proficiency / 100) * 40);
+// ─── Helpers ──────────────────────────────────────────────────────────────────
+
+/** Genshin-style four-point star (diamond with narrow waist), centered at 0,0 */
+function getFourPointStarPath(R: number): string {
+  const r = +(R * 0.2).toFixed(2);
+  const R_ = +R.toFixed(2);
+  return (
+    `M 0 -${R_}` +
+    ` L ${r} -${r}` +
+    ` L ${R_} 0` +
+    ` L ${r} ${r}` +
+    ` L 0 ${R_}` +
+    ` L -${r} ${r}` +
+    ` L -${R_} 0` +
+    ` L -${r} -${r} Z`
+  );
 }
+
+function getStarSize(proficiency: number): number {
+  return Math.max(7, (proficiency / 100) * 15);
+}
+
+// ─── Layout ───────────────────────────────────────────────────────────────────
 
 function computeClassLayout(
   items: SkillInput[],
@@ -62,8 +86,6 @@ function computeClassLayout(
   const cx = canvasW / 2;
   const cy = canvasH / 2;
 
-  // Cluster ring radius scales with canvas size and number of classes.
-  // Single class → stays at center
   const R_cluster =
     classCount <= 1
       ? 0
@@ -77,7 +99,6 @@ function computeClassLayout(
     const members = classMap.get(className)!;
     const memberCount = members.length;
 
-    // Evenly spread cluster centers, start from top (-π/2)
     const clusterAngle =
       classCount <= 1
         ? 0
@@ -88,28 +109,39 @@ function computeClassLayout(
 
     clusters.push({ x: clusterX, y: clusterY, className, classIndex });
 
-    // Per-cluster spoke radius scales with sqrt of member count
-    const R_star =
-      memberCount <= 1 ? 0 : Math.min(80, 28 + Math.sqrt(memberCount) * 24);
+    const R_star = Math.min(120, 45 + Math.sqrt(memberCount) * 30);
 
     members.forEach((skill, memberIndex) => {
       const starAngle =
         memberCount <= 1
-          ? 0
+          ? clusterAngle
           : (memberIndex / memberCount) * Math.PI * 2 - Math.PI / 2;
+
+      const sx = clusterX + Math.cos(starAngle) * R_star;
+      const sy = clusterY + Math.sin(starAngle) * R_star;
+
+      // Unit vector pointing away from cluster center, scaled to 16
+      const dx = sx - clusterX;
+      const dy = sy - clusterY;
+      const dist = Math.sqrt(dx * dx + dy * dy) || 1;
 
       computedSkills.push({
         ...skill,
         class: skill.class || "未分类",
-        x: clusterX + Math.cos(starAngle) * R_star,
-        y: clusterY + Math.sin(starAngle) * R_star,
+        x: sx,
+        y: sy,
         classIndex,
+        labelDx: (dx / dist) * 16,
+        labelDy: (dy / dist) * 16,
       });
     });
   });
 
   return { skills: computedSkills, clusters };
 }
+
+// ─── Component ────────────────────────────────────────────────────────────────
+
 export default function SkillConstellation({
   skills = [],
   width = 1000,
@@ -118,6 +150,13 @@ export default function SkillConstellation({
   const svgRef = useRef<SVGSVGElement | null>(null);
   const [selectedName, setSelectedName] = useState<string | null>(null);
   const [hoveredName, setHoveredName] = useState<string | null>(null);
+  const [isDraggingCanvas, setIsDraggingCanvas] = useState(false);
+
+  // Pan canvas motion values (CSS pixels) — read by framer-motion drag
+  const panX = useMotionValue(0);
+  const panY = useMotionValue(0);
+  const MAX_PAN_X = 400;
+  const MAX_PAN_Y = 260;
 
   const safeSkills: SkillInput[] = useMemo(() => {
     const raw = Array.isArray(skills)
@@ -131,8 +170,9 @@ export default function SkillConstellation({
     return raw.filter((item) => {
       const name = (item.name || "").trim();
       if (!name) return false;
-      if (seen.has(name)) return false;
-      seen.add(name);
+      const uniqueKey = `${item.class || "未分类"}-${name}`;
+      if (seen.has(uniqueKey)) return false;
+      seen.add(uniqueKey);
       return true;
     });
   }, [skills]);
@@ -148,8 +188,8 @@ export default function SkillConstellation({
     return map;
   }, [layoutSkills]);
 
-  const getClassColor = (classIndex: number): string =>
-    CLASS_COLORS[classIndex % CLASS_COLORS.length];
+  const getClassColor = (idx: number) =>
+    CLASS_COLORS[idx % CLASS_COLORS.length];
 
   const selectedSkill = selectedName
     ? (skillMap.get(selectedName) ?? null)
@@ -161,8 +201,6 @@ export default function SkillConstellation({
     [layoutSkills],
   );
 
-  const classCount = clusters.length;
-
   if (safeSkills.length === 0) {
     return (
       <div className="relative w-full min-h-[300px] bg-genshin-dark rounded-3xl border border-genshin-gold/20 p-8 flex items-center justify-center">
@@ -173,9 +211,15 @@ export default function SkillConstellation({
 
   return (
     <div className="w-full space-y-20">
+      {/* ── Part 1: SVG Constellation ─────────────────────────────── */}
       <div className="relative w-full bg-genshin-dark overflow-hidden rounded-3xl border border-genshin-gold/15">
         <div className="absolute inset-0 starfield-bg pointer-events-none" />
 
+        {/*
+          All nodes, lines, and labels live inside this single SVG.
+          No mixed HTML/SVG coordinate systems — tooltip is the only HTML overlay,
+          positioned using scaled SVG coordinates at render time.
+        */}
         <svg
           ref={svgRef}
           viewBox={`0 0 ${width} ${height}`}
@@ -183,149 +227,332 @@ export default function SkillConstellation({
           style={{
             background: "transparent",
             aspectRatio: `${width} / ${height}`,
+            cursor: isDraggingCanvas ? "grabbing" : "grab",
           }}
         >
           <defs>
-            <filter id="sc-glow" x="-50%" y="-50%" width="200%" height="200%">
-              <feGaussianBlur stdDeviation="2.5" result="coloredBlur" />
+            {/* Multi-layer bloom: large outer glow + crisp core glow */}
+            <filter
+              id="sc-star-glow"
+              x="-120%"
+              y="-120%"
+              width="340%"
+              height="340%"
+            >
+              <feGaussianBlur
+                in="SourceGraphic"
+                stdDeviation="5"
+                result="blur-l"
+              />
+              <feGaussianBlur
+                in="SourceGraphic"
+                stdDeviation="1.8"
+                result="blur-s"
+              />
               <feMerge>
-                <feMergeNode in="coloredBlur" />
+                <feMergeNode in="blur-l" />
+                <feMergeNode in="blur-s" />
                 <feMergeNode in="SourceGraphic" />
               </feMerge>
             </filter>
+
+            {/* Subtle glow for spoke lines — filterUnits=userSpaceOnUse prevents
+                 zero-bounding-box clipping on perfectly horizontal/vertical lines */}
+            <filter
+              id="sc-line-glow"
+              filterUnits="userSpaceOnUse"
+              x={-20}
+              y={-20}
+              width={width + 40}
+              height={height + 40}
+            >
+              <feGaussianBlur
+                in="SourceGraphic"
+                stdDeviation="1.4"
+                result="blur"
+              />
+              <feMerge>
+                <feMergeNode in="blur" />
+                <feMergeNode in="SourceGraphic" />
+              </feMerge>
+            </filter>
+
+            {/* Strong corona for cluster center diamonds */}
+            <filter
+              id="sc-cluster-glow"
+              x="-160%"
+              y="-160%"
+              width="420%"
+              height="420%"
+            >
+              <feGaussianBlur
+                in="SourceGraphic"
+                stdDeviation="9"
+                result="blur-l"
+              />
+              <feGaussianBlur
+                in="SourceGraphic"
+                stdDeviation="3"
+                result="blur-s"
+              />
+              <feMerge>
+                <feMergeNode in="blur-l" />
+                <feMergeNode in="blur-s" />
+                <feMergeNode in="SourceGraphic" />
+              </feMerge>
+            </filter>
+
+            {/* Dark drop-shadow for text readability */}
+            <filter
+              id="sc-text-shadow"
+              x="-20%"
+              y="-40%"
+              width="140%"
+              height="180%"
+            >
+              <feDropShadow
+                dx="0"
+                dy="0"
+                stdDeviation="2.5"
+                floodColor="#000000"
+                floodOpacity="0.92"
+              />
+            </filter>
           </defs>
 
-          {/* Radial spokes: cluster center → each member star */}
-          {clusters.map((cluster) => {
-            const color = getClassColor(cluster.classIndex);
-            const members = layoutSkills.filter(
-              (s) => s.classIndex === cluster.classIndex,
-            );
-            return members.map((skill, idx) => (
-              <motion.line
-                key={`spoke-${skill.name}`}
-                x1={cluster.x}
-                y1={cluster.y}
-                x2={skill.x}
-                y2={skill.y}
-                stroke={`${color}77`}
-                strokeWidth={1.5}
-                strokeLinecap="round"
-                filter="url(#sc-glow)"
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 0.7 }}
-                transition={{
-                  duration: 0.6,
-                  delay: idx * 0.06,
-                  ease: "easeOut",
-                }}
-              />
-            ));
-          })}
-
-          {/* Cluster center dots + labels */}
-          {clusters.map((cluster) => {
-            const color = getClassColor(cluster.classIndex);
-            return (
-              <g key={`cluster-${cluster.className}`}>
-                <motion.circle
-                  cx={cluster.x}
-                  cy={cluster.y}
-                  r={5}
-                  fill={color}
-                  filter="url(#sc-glow)"
-                  initial={{ scale: 0, opacity: 0 }}
-                  animate={{ scale: 1, opacity: 0.85 }}
-                  transition={{ duration: 0.4, delay: 0.1 }}
-                />
-                <motion.text
-                  x={cluster.x}
-                  y={cluster.y - 13}
-                  textAnchor="middle"
-                  fill={color}
-                  fontSize="13"
-                  fontFamily="Georgia, serif"
-                  style={{ pointerEvents: "none", userSelect: "none" }}
-                  initial={{ opacity: 0 }}
-                  animate={{ opacity: 0.9 }}
-                  transition={{ duration: 0.5, delay: 0.25 }}
-                >
-                  {cluster.className}
-                </motion.text>
-              </g>
-            );
-          })}
-
-          {/* Stars */}
-          {layoutSkills.map((skill, index) => {
-            const size = getStarSize(skill.proficiency);
-            const color = getClassColor(skill.classIndex);
-            const isActive =
-              hoveredName === skill.name || selectedName === skill.name;
-
-            return (
-              <motion.g
-                key={skill.name}
-                style={{
-                  transformOrigin: `${skill.x}px ${skill.y}px`,
-                  cursor: "pointer",
-                }}
-                initial={{ opacity: 0, scale: 0 }}
-                animate={{ opacity: 1, scale: isActive ? 1.22 : 1 }}
-                transition={{
-                  duration: 0.38,
-                  delay: index * 0.05,
-                  ease: "easeOut",
-                }}
-                onClick={() => setSelectedName(skill.name)}
-                onMouseEnter={() => setHoveredName(skill.name)}
-                onMouseLeave={() =>
-                  setHoveredName((prev) => (prev === skill.name ? null : prev))
-                }
-              >
-                <motion.circle
-                  cx={skill.x}
-                  cy={skill.y}
-                  r={size * 0.9}
-                  fill={color}
-                  opacity={0.1}
-                  filter="url(#sc-glow)"
-                  animate={{ r: [size * 0.75, size * 1.1, size * 0.75] }}
-                  transition={{
-                    duration: 3 + index * 0.2,
-                    repeat: Infinity,
-                    ease: "easeInOut",
-                  }}
-                />
+          {/* ── Pannable canvas group ─────────────────────────────────
+               drag is handled entirely by framer-motion:
+               - dragElastic provides boundary resistance + spring bounce
+               - dragMomentum=false stops instantly on release
+               - child star onClick still fires on tap (framer handles disambiguation)
+          ── */}
+          <motion.g
+            drag
+            dragConstraints={{
+              left: -MAX_PAN_X,
+              right: MAX_PAN_X,
+              top: -MAX_PAN_Y,
+              bottom: MAX_PAN_Y,
+            }}
+            dragElastic={0.12}
+            dragMomentum={false}
+            style={{ x: panX, y: panY }}
+            onDragStart={() => {
+              setIsDraggingCanvas(true);
+              setHoveredName(null);
+            }}
+            onDragEnd={() => setIsDraggingCanvas(false)}
+          >
+            {/* ── Layer 0: Backbone lines — canvas center → each cluster ── */}
+            {clusters.length > 1 &&
+              clusters.map((cluster, ci) => (
                 <motion.path
-                  d={STAR_PATH}
-                  fill={color}
-                  filter="url(#sc-glow)"
-                  transform={`translate(${skill.x - 12}, ${skill.y - 12}) scale(${size / 24})`}
-                  animate={{ opacity: [0.66, 1, 0.66] }}
+                  key={`backbone-${cluster.className}`}
+                  d={`M ${width / 2} ${height / 2} L ${cluster.x} ${cluster.y}`}
+                  stroke={getClassColor(cluster.classIndex)}
+                  strokeWidth={1}
+                  strokeDasharray="4 4"
+                  fill="none"
+                  strokeLinecap="round"
+                  initial={{ pathLength: 0, opacity: 0 }}
+                  animate={{ pathLength: 1, opacity: 0.3 }}
                   transition={{
-                    duration: 3.6 + index * 0.25,
-                    repeat: Infinity,
-                    ease: "easeInOut",
+                    duration: 1.4,
+                    delay: ci * 0.15,
+                    ease: [0.22, 1, 0.36, 1],
                   }}
                 />
-                <motion.text
-                  x={skill.x}
-                  y={skill.y + size / 2 + 15}
-                  textAnchor="middle"
-                  fill="rgba(236,229,216,0.82)"
-                  fontSize="11"
-                  fontFamily="Georgia, serif"
-                  style={{ pointerEvents: "none", userSelect: "none" }}
+              ))}
+
+            {/* ── Layer 1: Spoke lines with pathLength growth animation ── */}
+            {clusters.map((cluster, ci) => {
+              const color = getClassColor(cluster.classIndex);
+              const members = layoutSkills.filter(
+                (s) => s.classIndex === cluster.classIndex,
+              );
+              return members.map((skill, mi) => (
+                <motion.path
+                  key={`spoke-${cluster.className}-${skill.name}`}
+                  d={`M ${cluster.x} ${cluster.y} L ${skill.x + 0.01} ${skill.y + 0.01}`}
+                  stroke={color}
+                  strokeWidth={1.1}
+                  fill="none"
+                  strokeLinecap="round"
+                  filter="url(#sc-line-glow)"
+                  initial={{ pathLength: 0, opacity: 0 }}
+                  animate={{ pathLength: 1, opacity: 0.5 }}
+                  transition={{
+                    duration: 1.1,
+                    delay: ci * 0.2 + mi * 0.09,
+                    ease: [0.22, 1, 0.36, 1],
+                  }}
+                />
+              ));
+            })}
+
+            {/* ── Layer 2: Cluster center diamonds with breathing ── */}
+            {clusters.map((cluster, ci) => {
+              const color = getClassColor(cluster.classIndex);
+              const R = 11;
+              return (
+                <motion.g
+                  key={`cluster-${cluster.className}`}
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  transition={{ duration: 0.55, delay: ci * 0.18 + 0.25 }}
                 >
-                  {skill.name}
-                </motion.text>
-              </motion.g>
-            );
-          })}
+                  {/* Translate to cluster position so children use local coords */}
+                  <g transform={`translate(${cluster.x} ${cluster.y})`}>
+                    {/* Pulsing outer halo — pure SVG glow, no harsh edge */}
+                    <motion.circle
+                      cx={0}
+                      cy={0}
+                      r={R * 1.8}
+                      fill={color}
+                      filter="url(#sc-cluster-glow)"
+                      animate={{
+                        r: [R * 1.6, R * 2.7, R * 1.6],
+                        opacity: [0, 0.2, 0],
+                      }}
+                      transition={{
+                        duration: 4,
+                        repeat: Infinity,
+                        ease: "easeInOut",
+                        delay: ci * 0.55,
+                      }}
+                    />
+                    {/* Diamond icon with slow scale breathing */}
+                    <motion.path
+                      d={getFourPointStarPath(R)}
+                      fill={color}
+                      filter="url(#sc-cluster-glow)"
+                      animate={{
+                        scale: [1, 1.16, 1],
+                        opacity: [0.85, 1, 0.85],
+                      }}
+                      transition={{
+                        duration: 3.4,
+                        repeat: Infinity,
+                        ease: "easeInOut",
+                        delay: ci * 0.3,
+                      }}
+                    />
+                  </g>
+
+                  {/* Class label — outside breathing group so it stays stable */}
+                  <motion.text
+                    x={cluster.x}
+                    y={cluster.y - R - 9}
+                    textAnchor="middle"
+                    fill={color}
+                    fontSize="11"
+                    fontFamily="system-ui, -apple-system, sans-serif"
+                    letterSpacing="0.14em"
+                    filter="url(#sc-text-shadow)"
+                    style={{ pointerEvents: "none", userSelect: "none" }}
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 0.92 }}
+                    transition={{ duration: 0.5, delay: ci * 0.18 + 0.65 }}
+                  >
+                    {cluster.className}
+                  </motion.text>
+                </motion.g>
+              );
+            })}
+
+            {/* ── Layer 3: Skill stars (four-point, pure SVG glow) ── */}
+            {layoutSkills.map((skill, idx) => {
+              const skillKey = `${skill.class}-${skill.name}`;
+              const size = getStarSize(skill.proficiency);
+              const color = getClassColor(skill.classIndex);
+              const isActive =
+                hoveredName === skill.name || selectedName === skill.name;
+
+              // Outward text position: place label along the spoke direction
+              const lMag = Math.sqrt(skill.labelDx ** 2 + skill.labelDy ** 2);
+              const textDist = size + 13;
+              const textX =
+                lMag > 0
+                  ? skill.x + (skill.labelDx / lMag) * textDist
+                  : skill.x;
+              const textY =
+                lMag > 0
+                  ? skill.y + (skill.labelDy / lMag) * textDist
+                  : skill.y + textDist;
+              const textAnchor: "start" | "end" | "middle" =
+                skill.labelDx > 3
+                  ? "start"
+                  : skill.labelDx < -3
+                    ? "end"
+                    : "middle";
+
+              return (
+                <motion.g
+                  key={skillKey}
+                  style={{
+                    transformOrigin: `${skill.x}px ${skill.y}px`,
+                    cursor: "pointer",
+                  }}
+                  initial={{ opacity: 0, scale: 0 }}
+                  animate={{ opacity: 1, scale: isActive ? 1.3 : 1 }}
+                  transition={{
+                    duration: 0.35,
+                    delay: 0.65 + idx * 0.055,
+                    ease: "backOut",
+                  }}
+                  onClick={() => setSelectedName(skill.name)}
+                  onMouseEnter={() => setHoveredName(skill.name)}
+                  onMouseLeave={() =>
+                    setHoveredName((prev) =>
+                      prev === skill.name ? null : prev,
+                    )
+                  }
+                >
+                  {/* Oversized transparent hit area for easier interaction */}
+                  <circle
+                    cx={skill.x}
+                    cy={skill.y}
+                    r={size + 10}
+                    fill="transparent"
+                  />
+
+                  {/* Four-point star — no background circle, glow via SVG filter only */}
+                  <g transform={`translate(${skill.x} ${skill.y})`}>
+                    <motion.path
+                      d={getFourPointStarPath(size)}
+                      fill={color}
+                      filter="url(#sc-star-glow)"
+                      animate={{ opacity: [0.68, 1, 0.68] }}
+                      transition={{
+                        duration: 3 + idx * 0.22,
+                        repeat: Infinity,
+                        ease: "easeInOut",
+                      }}
+                    />
+                  </g>
+
+                  {/* Skill name — outward offset, sans-serif, text-shadow */}
+                  <motion.text
+                    x={textX}
+                    y={textY}
+                    textAnchor={textAnchor}
+                    dominantBaseline="middle"
+                    fill="rgba(236,229,216,0.78)"
+                    fontSize="10"
+                    fontFamily="system-ui, -apple-system, sans-serif"
+                    letterSpacing="0.04em"
+                    filter="url(#sc-text-shadow)"
+                    style={{ pointerEvents: "none", userSelect: "none" }}
+                  >
+                    {skill.name}
+                  </motion.text>
+                </motion.g>
+              );
+            })}
+          </motion.g>
         </svg>
 
-        {/* Hover tooltip */}
+        {/* ── Hover tooltip (HTML, positioned via scaled SVG coords) ── */}
         <AnimatePresence mode="wait">
           {hoveredSkill &&
             !selectedSkill &&
@@ -342,8 +569,9 @@ export default function SkillConstellation({
               const scaleY = svgRef.current
                 ? svgRef.current.clientHeight / height
                 : scaleX;
-              const sx = hoveredSkill.x * scaleX;
-              const sy = hoveredSkill.y * scaleY;
+              // Add pan offset (CSS pixels) so tooltip tracks with the panned canvas
+              const sx = hoveredSkill.x * scaleX + panX.get();
+              const sy = hoveredSkill.y * scaleY + panY.get();
               const containerW = width * scaleX;
               const containerH = height * scaleY;
 
@@ -356,10 +584,10 @@ export default function SkillConstellation({
               return (
                 <motion.div
                   key={hoveredSkill.name}
-                  initial={{ opacity: 0, scale: 0.84 }}
+                  initial={{ opacity: 0, scale: 0.88 }}
                   animate={{ opacity: 1, scale: 1 }}
-                  exit={{ opacity: 0, scale: 0.84 }}
-                  transition={{ duration: 0.2, ease: "easeOut" }}
+                  exit={{ opacity: 0, scale: 0.88 }}
+                  transition={{ duration: 0.18, ease: "easeOut" }}
                   className="absolute glass-panel p-4 rounded-2xl border shadow-[0_0_28px_rgba(236,229,216,0.12)] z-20 pointer-events-none"
                   style={{
                     left: tipLeft,
@@ -400,7 +628,7 @@ export default function SkillConstellation({
             })()}
         </AnimatePresence>
 
-        {/* Selected skill modal */}
+        {/* ── Selected skill modal ── */}
         <AnimatePresence>
           {selectedSkill && (
             <>
@@ -475,7 +703,7 @@ export default function SkillConstellation({
         </AnimatePresence>
       </div>
 
-      {/* Part 2: Skill Overview */}
+      {/* ── Part 2: Skill Overview ─────────────────────────────────── */}
       <div>
         <div className="text-center mb-10">
           <h3
@@ -491,7 +719,8 @@ export default function SkillConstellation({
             技能全览
           </h3>
           <p className="text-genshin-light/40 text-xs tracking-[0.28em] uppercase">
-            Skill Overview · {safeSkills.length} skills · {classCount} classes
+            Skill Overview · {safeSkills.length} skills · {clusters.length}{" "}
+            classes
           </p>
         </div>
 

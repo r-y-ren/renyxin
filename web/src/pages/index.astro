@@ -1,59 +1,771 @@
 ---
 import Layout from '../layouts/Layout.astro';
-import AnimatedBox from '../components/AnimatedBox';
+import { getCollection, getEntry } from 'astro:content';
+import DraggableCharacter from '../components/DraggableCharacter';
+import SkillConstellation from '../components/SkillConstellation';
+import ContributionGraph from '../components/ContributionGraph';
+import BlogGrid from '../components/BlogGrid';
+import AchievementGrid from '../components/AchievementGrid';
+import DraggableOutlook from '../components/DraggableOutlook';
+import type { DailyLogEntry } from '../components/ContributionGraph';
+import { marked } from 'marked';
+
+// ── Blog & Achievements ──────────────────────────────────────────────────────
+const blogPosts = await getCollection('blog');
+const achievements = await getCollection('achievements');
+
+const sortedPosts = blogPosts.sort((a, b) =>
+  new Date(b.data.date).getTime() - new Date(a.data.date).getTime()
+);
+const sortedAchievements = achievements.sort((a, b) =>
+  new Date(b.data.date).getTime() - new Date(a.data.date).getTime()
+);
+
+// ── Skills from Content Collections ─────────────────────────────────────────
+const skillEntries = await getCollection('skills');
+const skillsData = skillEntries.map((e) => ({
+  name: e.data.name,
+  proficiency: e.data.proficiency,
+  class: e.data.class,
+  description: e.data.description,
+}));
+
+// ── Site info from Content Collections ──────────────────────────────────────
+const heroEntry    = await getEntry('site-info', 'hero');
+const outlookEntry = await getEntry('site-info', 'outlook');
+const footerEntry  = await getEntry('site-info', 'footer');
+
+const introHtml   = marked.parse(heroEntry!.body) as string;
+const outlookHtml = marked.parse(outlookEntry!.body) as string;
+
+const footerLinks     = footerEntry?.data.links ?? [];
+const footerCopyright = footerEntry?.data.copyright ?? '© 2024';
+
+// ── Daily logs for ContributionGraph ────────────────────────────────────────
+const rawLogs = await getCollection('daily-log');
+const dailyLogs: DailyLogEntry[] = rawLogs.map((entry) => ({
+  slug: entry.slug,
+  date: (entry.data.date as Date).toISOString().slice(0, 10),
+  title: entry.data.title,
+}));
+
+// ── Blog posts with rendered content ────────────────────────────────────────
+interface BlogPostWithContent {
+  slug: string;
+  data: {
+    title: string;
+    date: Date;
+    tags: string[];
+    coverImage?: string;
+  };
+  html: string;
+  excerpt: string;
+}
+
+const postsWithContent: BlogPostWithContent[] = sortedPosts.map((post) => {
+  const body = post.body.replace(/^---[\s\S]*?---\s*/, '');
+  const textContent = body
+    .replace(/#+\s/g, '')
+    .replace(/[*_]/g, '')
+    .replace(/\[([^\]]+)\]\([^)]*\)/g, '$1')
+    .trim();
+  const excerpt = textContent.substring(0, 150) + '...';
+  const html = marked(body) as string;
+  return { slug: post.slug, data: post.data, html, excerpt };
+});
+
+// ── Achievement columns for staggered layout ──────────────────────────────
+const achCol1 = sortedAchievements.filter((_, i) => i % 3 === 0);
+const achCol2 = sortedAchievements.filter((_, i) => i % 3 === 1);
+const achCol3 = sortedAchievements.filter((_, i) => i % 3 === 2);
 ---
 
-<Layout title="欢迎来到 Astro + React + Framer Motion">
-  <main class="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 dark:from-slate-900 dark:to-slate-800 py-20 px-4">
-    <div class="max-w-4xl mx-auto">
-      <h1 class="text-5xl font-bold text-center mb-6 bg-clip-text text-transparent bg-gradient-to-r from-blue-600 to-purple-600">
-        Astro 项目已就绪 🚀
-      </h1>
-      
-      <p class="text-xl text-center text-slate-600 dark:text-slate-300 mb-12">
-        这是一个集成了 React、Tailwind CSS 和 Framer Motion 的 Astro 项目
-      </p>
-      
+<Layout title="人亦心的数字空间" showStarfield={false}>
+<div class="gh-root">
 
-      <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
-        <AnimatedBox delay={0}>
-          <h2 class="text-2xl font-bold mb-2">✨ React 集成</h2>
-          <p>使用 React 组件构建交互式用户界面</p>
-        </AnimatedBox>
-
-        <AnimatedBox delay={0.1}>
-          <h2 class="text-2xl font-bold mb-2">🎨 Tailwind CSS</h2>
-          <p>原子化样式框架，快速构建现代设计</p>
-        </AnimatedBox>
-
-        <AnimatedBox delay={0.2}>
-          <h2 class="text-2xl font-bold mb-2">🎬 Framer Motion</h2>
-          <p>强大的动画库，实现复杂的交互效果</p>
-        </AnimatedBox>
-      </div>
-
-      <div class="mt-12 p-8 bg-white dark:bg-slate-800 rounded-lg shadow-lg">
-        <h2 class="text-2xl font-bold mb-4">📁 项目结构</h2>
-        <pre class="bg-slate-100 dark:bg-slate-900 p-4 rounded overflow-auto text-sm"><code>{`src/
-├── components/      # React 组件
-├── layouts/         # Astro 布局
-├── pages/          # 页面路由
-├── content/        # Markdown 数据
-└── styles/         # 全局样式`}</code></pre>
-      </div>
-
-      <div class="mt-12 text-center">
-        <p class="text-slate-600 dark:text-slate-400 mb-4">
-          开始编辑 <code class="bg-slate-200 dark:bg-slate-700 px-2 py-1 rounded">src/pages/index.astro</code> 来自定义您的网站
-        </p>
+  <!-- ╔══════════════════════════════════════════════════════╗ -->
+  <!-- ║  HEADER                                              ║ -->
+  <!-- ╚══════════════════════════════════════════════════════╝ -->
+  <header class="gh-header">
+    <div class="gh-header-inner">
+      <a class="gh-header-mark" href="/" aria-label="Homepage">
+        <svg viewBox="0 0 16 16" width="32" height="32" fill="currentColor" aria-hidden="true">
+          <path d="M8 0c4.42 0 8 3.58 8 8a8.013 8.013 0 0 1-5.45 7.59c-.4.08-.55-.17-.55-.38 0-.27.01-1.13.01-2.2 0-.75-.25-1.23-.54-1.48 1.78-.2 3.65-.88 3.65-3.95 0-.88-.31-1.59-.82-2.15.08-.2.36-1.02-.08-2.12 0 0-.67-.22-2.2.82-.64-.18-1.32-.27-2-.27-.68 0-1.36.09-2 .27-1.53-1.03-2.2-.82-2.2-.82-.44 1.1-.16 1.92-.08 2.12-.51.56-.82 1.28-.82 2.15 0 3.06 1.86 3.75 3.64 3.95-.23.2-.44.55-.51 1.07-.46.21-1.61.55-2.33-.66-.15-.24-.6-.83-1.23-.82-.67.01-.27.38.01.53.34.19.73.9.82 1.13.16.45.68 1.31 2.69.94 0 .67.01 1.3.01 1.49 0 .21-.15.45-.55.38A7.995 7.995 0 0 1 0 8c0-4.42 3.58-8 8-8Z"/>
+        </svg>
+      </a>
+      <span class="gh-header-crumb">{heroEntry!.data.title}</span>
+      <div class="gh-header-actions">
+        {footerLinks.map((link) => (
+          <a href={link.href} class="gh-header-link" target="_blank" rel="noopener noreferrer">
+            {link.label}
+          </a>
+        ))}
       </div>
     </div>
-    
+  </header>
 
+  <!-- ╔══════════════════════════════════════════════════════╗ -->
+  <!-- ║  PROFILE TABS                                        ║ -->
+  <!-- ╚══════════════════════════════════════════════════════╝ -->
+  <nav class="gh-tabbar" aria-label="用户资料导航">
+    <div class="gh-tabbar-inner">
+      <button class="gh-tab is-active" type="button">
+        <svg class="gh-tab-icon" viewBox="0 0 16 16" width="16" height="16" fill="currentColor" aria-hidden="true">
+          <path d="M8 8a3 3 0 1 0 0-6 3 3 0 0 0 0 6Zm2-3a2 2 0 1 1-4 0 2 2 0 0 1 4 0Zm4 8c0 1-1 1-1 1H3s-1 0-1-1 1-4 6-4 6 3 6 4Zm-1-.004c-.001-.246-.154-.986-.832-1.664C11.516 10.68 10.289 10 8 10c-2.29 0-3.516.68-4.168 1.332-.678.678-.83 1.418-.832 1.664h10Z"/>
+        </svg>
+        Overview
+      </button>
+      <button class="gh-tab" type="button">
+        <svg class="gh-tab-icon" viewBox="0 0 16 16" width="16" height="16" fill="currentColor" aria-hidden="true">
+          <path d="M2 2.5A2.5 2.5 0 0 1 4.5 0h8.75a.75.75 0 0 1 .75.75v12.5a.75.75 0 0 1-.75.75h-2.5a.75.75 0 0 1 0-1.5h1.75v-2h-8a1 1 0 0 0-.714 1.7.75.75 0 1 1-1.072 1.05A2.495 2.495 0 0 1 2 11.5Zm10.5-1h-8a1 1 0 0 0-1 1v6.708A2.486 2.486 0 0 1 4.5 9h8Z"/>
+        </svg>
+        博客文章
+        <span class="gh-tab-num">{sortedPosts.length}</span>
+      </button>
+      <button class="gh-tab" type="button">
+        <svg class="gh-tab-icon" viewBox="0 0 16 16" width="16" height="16" fill="currentColor" aria-hidden="true">
+          <path d="M8 .25a.75.75 0 0 1 .673.418l1.882 3.815 4.21.612a.75.75 0 0 1 .416 1.279l-3.046 2.97.719 4.192a.751.751 0 0 1-1.088.791L8 12.347l-3.766 1.98a.75.75 0 0 1-1.088-.79l.72-4.194L.818 6.374a.75.75 0 0 1 .416-1.28l4.21-.611L7.327.668A.75.75 0 0 1 8 .25Z"/>
+        </svg>
+        成就
+        <span class="gh-tab-num">{achievements.length}</span>
+      </button>
+      <button class="gh-tab" type="button">
+        <svg class="gh-tab-icon" viewBox="0 0 16 16" width="16" height="16" fill="currentColor" aria-hidden="true">
+          <path d="M11.28 3.22a.75.75 0 0 1 0 1.06l-7.5 7.5a.75.75 0 0 1-1.06-1.06l7.5-7.5a.75.75 0 0 1 1.06 0ZM4.78 3.22a.75.75 0 0 0-1.06 1.06L4.94 5.5 3.72 6.72a.75.75 0 0 0 1.06 1.06l1.5-1.5a.75.75 0 0 0 0-1.06L4.78 3.22Zm6.44 1.06a.75.75 0 0 0-1.06-1.06l-1.5 1.5a.75.75 0 0 0 1.06 1.06l1.5-1.5Z"/>
+        </svg>
+        技能
+        <span class="gh-tab-num">{skillsData.length}</span>
+      </button>
+    </div>
+  </nav>
+
+  <!-- ╔══════════════════════════════════════════════════════╗ -->
+  <!-- ║  BODY: SIDEBAR + MAIN                                ║ -->
+  <!-- ╚══════════════════════════════════════════════════════╝ -->
+  <div class="gh-body">
+    <div class="gh-layout">
+
+      <!-- ── SIDEBAR ─────────────────────────────────────── -->
+      <aside class="gh-sidebar">
+
+        <!-- Avatar (character portrait, portrait-ratio frame) -->
+        <div class="gh-avatar-wrap">
+          <img
+            src={heroEntry!.data.characterImage ?? '/pictures/胡桃.png'}
+            alt={heroEntry!.data.characterAlt ?? '头像'}
+            class="gh-avatar"
+          />
+        </div>
+
+        <!-- Identity -->
+        <h1 class="gh-display-name">{heroEntry!.data.title}</h1>
+        <p class="gh-handle">{heroEntry!.data.subtitle ?? '旅行者 · 开发者'}</p>
+
+        <!-- Follow button -->
+        <button class="gh-btn-follow" type="button">
+          <svg viewBox="0 0 16 16" width="16" height="16" fill="currentColor" aria-hidden="true">
+            <path d="M8 9a3 3 0 1 0 0-6 3 3 0 0 0 0 6ZM8 10a6 6 0 0 0-6 6h12a6 6 0 0 0-6-6Z"/>
+          </svg>
+          关注
+        </button>
+
+        <!-- Stats -->
+        <div class="gh-stats-row">
+          <span class="gh-stat">
+            <svg viewBox="0 0 16 16" width="16" height="16" fill="currentColor" class="gh-stat-icon" aria-hidden="true">
+              <path d="M2 2.5A2.5 2.5 0 0 1 4.5 0h8.75a.75.75 0 0 1 .75.75v12.5a.75.75 0 0 1-.75.75h-2.5a.75.75 0 0 1 0-1.5h1.75v-2h-8a1 1 0 0 0-.714 1.7.75.75 0 1 1-1.072 1.05A2.495 2.495 0 0 1 2 11.5Zm10.5-1h-8a1 1 0 0 0-1 1v6.708A2.486 2.486 0 0 1 4.5 9h8Z"/>
+            </svg>
+            <strong>{sortedPosts.length}</strong>
+            <span class="gh-stat-label">篇文章</span>
+          </span>
+          <span class="gh-stat-sep">·</span>
+          <span class="gh-stat">
+            <svg viewBox="0 0 16 16" width="16" height="16" fill="currentColor" class="gh-stat-icon" aria-hidden="true">
+              <path d="M8 .25a.75.75 0 0 1 .673.418l1.882 3.815 4.21.612a.75.75 0 0 1 .416 1.279l-3.046 2.97.719 4.192a.751.751 0 0 1-1.088.791L8 12.347l-3.766 1.98a.75.75 0 0 1-1.088-.79l.72-4.194L.818 6.374a.75.75 0 0 1 .416-1.28l4.21-.611L7.327.668A.75.75 0 0 1 8 .25Z"/>
+            </svg>
+            <strong>{achievements.length}</strong>
+            <span class="gh-stat-label">成就</span>
+          </span>
+        </div>
+
+        <div class="gh-divider"></div>
+
+        <!-- Tech stack / Language list -->
+        <div class="gh-sidebar-block">
+          <h3 class="gh-sidebar-label">技术栈</h3>
+          <div class="gh-lang-list">
+            {skillsData.map((s) => {
+              const color =
+                s.class === 'frontend'  ? '#d4a853' :
+                s.class === 'backend'   ? '#58a6ff' :
+                s.class === 'runtime'   ? '#3fb950' :
+                s.class === 'framework' ? '#bc8cff' :
+                s.class === 'style'     ? '#f6748f' :
+                '#8b949e';
+              return (
+                <div class="gh-lang-row">
+                  <span class="gh-lang-dot" style={`background:${color}`}></span>
+                  <span class="gh-lang-name">{s.name}</span>
+                  <span class="gh-lang-pct">{s.proficiency}%</span>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+
+        <div class="gh-divider"></div>
+
+        <!-- Compact achievement badges -->
+        <div class="gh-sidebar-block">
+          <h3 class="gh-sidebar-label">
+            成就徽章
+            <span class="gh-sidebar-count">{achievements.length}</span>
+          </h3>
+          <div class="gh-ach-compact">
+            {sortedAchievements.slice(0, 6).map((a) => (
+              <div class="gh-ach-badge" title={`${a.data.title} · ${a.data.category}`}>
+                <div class="gh-ach-icon">{a.data.icon ?? '🏅'}</div>
+                <div class="gh-ach-meta">
+                  <span class="gh-ach-name">{a.data.title}</span>
+                  <span class="gh-ach-cat">{a.data.category}</span>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        <div class="gh-divider"></div>
+
+        <!-- External links -->
+        <div class="gh-sidebar-block">
+          {footerLinks.map((link) => (
+            <a href={link.href} class="gh-sidebar-link" target="_blank" rel="noopener noreferrer">
+              <svg viewBox="0 0 16 16" width="16" height="16" fill="currentColor" class="gh-sidebar-link-icon" aria-hidden="true">
+                <path d="m7.775 3.275 1.25-1.25a3.5 3.5 0 1 1 4.95 4.95l-2.5 2.5a3.5 3.5 0 0 1-4.95 0 .751.751 0 0 1 .018-1.042.751.751 0 0 1 1.042-.018 1.998 1.998 0 0 0 2.83 0l2.5-2.5a2.002 2.002 0 0 0-2.83-2.83l-1.25 1.25a.751.751 0 0 1-1.042-.018.751.751 0 0 1-.018-1.042Zm-4.69 9.64a1.998 1.998 0 0 0 2.83 0l1.25-1.25a.751.751 0 0 1 1.042.018.751.751 0 0 1 .018 1.042l-1.25 1.25a3.5 3.5 0 0 1-4.95-4.95l2.5-2.5a3.5 3.5 0 0 1 4.95 0 .751.751 0 0 1-.018 1.042.751.751 0 0 1-1.042.018 1.998 1.998 0 0 0-2.83 0l-2.5 2.5a1.998 1.998 0 0 0 0 2.83Z"/>
+              </svg>
+              {link.label}
+            </a>
+          ))}
+        </div>
+
+      </aside>
+
+      <!-- ── MAIN CONTENT ──────────────────────────────────── -->
+      <main class="gh-main">
+
+        <!-- 1. Profile README (DraggableCharacter as interactive profile card) -->
+        <div class="gh-card">
+          <div class="gh-card-header">
+            <svg viewBox="0 0 16 16" width="16" height="16" fill="currentColor" class="gh-card-icon" aria-hidden="true">
+              <path d="M0 1.75A.75.75 0 0 1 .75 1h4.253c1.227 0 2.317.59 3 1.501A3.743 3.743 0 0 1 11.006 1h4.245a.75.75 0 0 1 .75.75v10.5a.75.75 0 0 1-.75.75h-4.507a2.25 2.25 0 0 0-1.591.659l-.622.621a.75.75 0 0 1-1.06 0l-.622-.621A2.25 2.25 0 0 0 5.258 13H.75a.75.75 0 0 1-.75-.75Zm7.251 10.324.004-5.073-.002-2.253A2.25 2.25 0 0 0 5.003 2.5H1.5v9h3.757a3.75 3.75 0 0 1 1.994.574ZM8.755 4.75l-.004 7.322a3.752 3.752 0 0 1 1.992-.572H14.5v-9h-3.495a2.25 2.25 0 0 0-2.25 2.25Z"/>
+            </svg>
+            <span class="gh-card-title">
+              <span class="gh-muted">{heroEntry!.data.title}</span>
+              <span class="gh-muted mx-1">/</span>
+              <strong class="gh-text">README</strong>
+              <span class="gh-muted">.md</span>
+            </span>
+            <span class="gh-pin-badge ml-auto">Pinned</span>
+          </div>
+          <div class="gh-readme-body">
+            <DraggableCharacter
+              client:load
+              title={heroEntry!.data.title}
+              imageSrc={heroEntry!.data.characterImage ?? '/pictures/胡桃.png'}
+              imageAlt={heroEntry!.data.characterAlt ?? '立绘'}
+              markdownHtml={introHtml}
+            />
+          </div>
+        </div>
+
+        <!-- 2. Contribution Graph -->
+        <div class="gh-card">
+          <div class="gh-card-header">
+            <svg viewBox="0 0 16 16" width="16" height="16" fill="currentColor" class="gh-card-icon" aria-hidden="true">
+              <path d="M1.5 1.75V13.5h13.75a.75.75 0 0 1 0 1.5H.75a.75.75 0 0 1-.75-.75V1.75a.75.75 0 0 1 1.5 0Zm14.28 2.53-5.25 5.25a.75.75 0 0 1-1.06 0L7 7.06 4.28 9.78a.751.751 0 0 1-1.042-.018.751.751 0 0 1-.018-1.042l3.25-3.25a.75.75 0 0 1 1.06 0L10 7.94l4.72-4.72a.751.751 0 0 1 1.042.018.751.751 0 0 1 .018 1.042Z"/>
+            </svg>
+            <span class="gh-text font-semibold text-sm">{dailyLogs.length} 条日志记录 · 过去一年</span>
+            <span class="gh-muted text-xs ml-auto">每日进程</span>
+          </div>
+          <div class="gh-card-body gh-contrib-wrap">
+            <ContributionGraph client:load logs={dailyLogs} />
+          </div>
+        </div>
+
+        <!-- 3. Blog Posts -->
+        <div>
+          <div class="gh-section-row">
+            <h2 class="gh-section-title">
+              <svg viewBox="0 0 16 16" width="16" height="16" fill="currentColor" class="gh-section-icon" aria-hidden="true">
+                <path d="M2 2.5A2.5 2.5 0 0 1 4.5 0h8.75a.75.75 0 0 1 .75.75v12.5a.75.75 0 0 1-.75.75h-2.5a.75.75 0 0 1 0-1.5h1.75v-2h-8a1 1 0 0 0-.714 1.7.75.75 0 1 1-1.072 1.05A2.495 2.495 0 0 1 2 11.5Zm10.5-1h-8a1 1 0 0 0-1 1v6.708A2.486 2.486 0 0 1 4.5 9h8Z"/>
+              </svg>
+              博客文章
+              <span class="gh-count-badge">{sortedPosts.length}</span>
+            </h2>
+            <span class="gh-hint">点击卡片可展开全文</span>
+          </div>
+          <div class="gh-blog-wrap mt-3">
+            <BlogGrid client:load posts={postsWithContent} />
+          </div>
+        </div>
+
+        <!-- 4. Skill Constellation -->
+        <div class="gh-card">
+          <div class="gh-card-header">
+            <svg viewBox="0 0 16 16" width="16" height="16" fill="currentColor" class="gh-card-icon" aria-hidden="true">
+              <path d="M8 .25a.75.75 0 0 1 .673.418l1.882 3.815 4.21.612a.75.75 0 0 1 .416 1.279l-3.046 2.97.719 4.192a.751.751 0 0 1-1.088.791L8 12.347l-3.766 1.98a.75.75 0 0 1-1.088-.79l.72-4.194L.818 6.374a.75.75 0 0 1 .416-1.28l4.21-.611L7.327.668A.75.75 0 0 1 8 .25Z"/>
+            </svg>
+            <span class="gh-text font-semibold text-sm">技能星座</span>
+            <span class="gh-muted text-xs ml-auto">悬浮查看 · 点击展开</span>
+          </div>
+          <div class="gh-card-body flex justify-center overflow-x-auto">
+            <SkillConstellation client:load skills={skillsData} width={760} height={480} />
+          </div>
+        </div>
+
+        <!-- 5. Achievement grid (GitHub achievement badge style) -->
+        <div>
+          <div class="gh-section-row">
+            <h2 class="gh-section-title">
+              <svg viewBox="0 0 16 16" width="16" height="16" fill="currentColor" class="gh-section-icon" aria-hidden="true">
+                <path d="M8 .25a.75.75 0 0 1 .673.418l1.882 3.815 4.21.612a.75.75 0 0 1 .416 1.279l-3.046 2.97.719 4.192a.751.751 0 0 1-1.088.791L8 12.347l-3.766 1.98a.75.75 0 0 1-1.088-.79l.72-4.194L.818 6.374a.75.75 0 0 1 .416-1.28l4.21-.611L7.327.668A.75.75 0 0 1 8 .25Z"/>
+              </svg>
+              成就系统
+              <span class="gh-count-badge">{achievements.length}</span>
+            </h2>
+          </div>
+          <div class="mt-3">
+            <AchievementGrid
+              client:load
+              achievements={sortedAchievements.map((a) => ({
+                slug: a.slug,
+                data: a.data,
+                body: a.body ?? '',
+              }))}
+            />
+          </div>
+        </div>
+
+        <!-- 6. Outlook -->
+        <div class="gh-card">
+          <div class="gh-card-header">
+            <svg viewBox="0 0 16 16" width="16" height="16" fill="currentColor" class="gh-card-icon" aria-hidden="true">
+              <path d="M0 1.75C0 .784.784 0 1.75 0h12.5C15.216 0 16 .784 16 1.75v9.5A1.75 1.75 0 0 1 14.25 13H8.06l-2.573 2.573A1.458 1.458 0 0 1 3 14.543V13H1.75A1.75 1.75 0 0 1 0 11.25Zm1.75-.25a.25.25 0 0 0-.25.25v9.5c0 .138.112.25.25.25h2a.75.75 0 0 1 .75.75v2.19l2.72-2.72a.749.749 0 0 1 .53-.22h6.5a.25.25 0 0 0 .25-.25v-9.5a.25.25 0 0 0-.25-.25Z"/>
+            </svg>
+            <span class="gh-text font-semibold text-sm">{outlookEntry!.data.title}</span>
+            <span class="gh-muted text-xs ml-2">{outlookEntry!.data.subtitle}</span>
+          </div>
+          <div class="gh-card-body">
+            <DraggableOutlook
+              client:load
+              title={outlookEntry!.data.title}
+              subtitle={outlookEntry!.data.subtitle}
+              htmlContent={outlookHtml}
+            />
+          </div>
+        </div>
+
+      </main><!-- /gh-main -->
+    </div><!-- /gh-layout -->
+  </div><!-- /gh-body -->
+
+  <!-- ╔══════════════════════════════════════════════════════╗ -->
+  <!-- ║  FOOTER                                              ║ -->
+  <!-- ╚══════════════════════════════════════════════════════╝ -->
+  <footer class="gh-footer">
+    <div class="gh-footer-inner">
+      <span>{footerCopyright}</span>
+      <nav class="gh-footer-nav">
+        {footerLinks.map((link) => (
+          <a href={link.href} class="gh-footer-link" target="_blank" rel="noopener noreferrer">
+            {link.label}
+          </a>
+        ))}
+      </nav>
+    </div>
+  </footer>
+
+</div>
 </Layout>
 
 <style>
-  code {
-    font-family: 'Courier New', monospace;
+  /* ═══ GitHub Dark Palette ══════════════════════════════════════════ */
+  :root {
+    --gh-bg:        #0d1117;
+    --gh-surface:   #161b22;
+    --gh-surface2:  #21262d;
+    --gh-border:    #30363d;
+    --gh-text:      #e6edf3;
+    --gh-muted:     #7d8590;
+    --gh-accent:    #d4a853;
+    --gh-link:      #58a6ff;
+    --gh-indicator: #f78166;
   }
+
+  /* ═══ Global resets ════════════════════════════════════════════════ */
+  :global(body) { background: var(--gh-bg) !important; }
+
+  .gh-root {
+    background: var(--gh-bg);
+    color: var(--gh-text);
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Noto Sans",
+      Helvetica, Arial, sans-serif, "Apple Color Emoji";
+    font-size: 14px;
+    line-height: 1.5;
+    min-height: 100vh;
+  }
+  .gh-text   { color: var(--gh-text); }
+  .gh-muted  { color: var(--gh-muted); }
+  .ml-auto   { margin-left: auto; }
+  .ml-2      { margin-left: 0.5rem; }
+  .mt-3      { margin-top: 0.75rem; }
+
+  /* ═══ Header ═══════════════════════════════════════════════════════ */
+  .gh-header {
+    position: sticky;
+    top: 0;
+    z-index: 100;
+    background: var(--gh-surface);
+    border-bottom: 1px solid var(--gh-border);
+    height: 62px;
+    display: flex;
+    align-items: center;
+  }
+  .gh-header-inner {
+    width: 100%;
+    max-width: 1280px;
+    margin: 0 auto;
+    padding: 0 32px;
+    display: flex;
+    align-items: center;
+    gap: 16px;
+  }
+  .gh-header-mark { color: var(--gh-text); display: flex; align-items: center; flex-shrink: 0; text-decoration: none; }
+  .gh-header-mark:hover { color: var(--gh-accent); }
+  .gh-header-crumb { font-size: 14px; font-weight: 600; color: var(--gh-text); }
+  .gh-header-actions { margin-left: auto; display: flex; align-items: center; gap: 4px; }
+  .gh-header-link {
+    color: var(--gh-muted);
+    font-size: 13px;
+    text-decoration: none;
+    padding: 5px 10px;
+    border-radius: 6px;
+    transition: color .15s, background .15s;
+  }
+  .gh-header-link:hover { color: var(--gh-text); background: rgba(177,186,196,.12); }
+
+  /* ═══ Tab bar ══════════════════════════════════════════════════════ */
+  .gh-tabbar { background: var(--gh-bg); border-bottom: 1px solid var(--gh-border); overflow-x: auto; }
+  .gh-tabbar-inner {
+    max-width: 1280px;
+    margin: 0 auto;
+    padding: 0 32px;
+    display: flex;
+    align-items: stretch;
+  }
+  .gh-tab {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 12px 16px;
+    font-size: 14px;
+    color: var(--gh-muted);
+    background: none;
+    border: none;
+    border-bottom: 2px solid transparent;
+    cursor: pointer;
+    white-space: nowrap;
+    transition: color .15s;
+    position: relative;
+    bottom: -1px;
+  }
+  .gh-tab:hover { color: var(--gh-text); }
+  .gh-tab.is-active { color: var(--gh-text); border-bottom-color: var(--gh-indicator); font-weight: 600; }
+  .gh-tab-icon { color: var(--gh-muted); flex-shrink: 0; }
+  .gh-tab-num {
+    background: rgba(110,118,129,.2);
+    color: var(--gh-text);
+    font-size: 12px;
+    font-weight: 500;
+    padding: 1px 6px;
+    border-radius: 20px;
+    line-height: 1.5;
+  }
+
+  /* ═══ Page body layout ═════════════════════════════════════════════ */
+  .gh-body { max-width: 1280px; margin: 0 auto; padding: 24px 32px; }
+  .gh-layout {
+    display: grid;
+    grid-template-columns: 296px 1fr;
+    gap: 24px;
+    align-items: start;
+  }
+
+  /* ═══ Sidebar ══════════════════════════════════════════════════════ */
+  .gh-sidebar { position: sticky; top: 80px; }
+
+  .gh-avatar-wrap {
+    width: 100%;
+    margin-bottom: 16px;
+    border-radius: 8px;
+    overflow: hidden;
+    border: 2px solid var(--gh-border);
+    background: var(--gh-surface);
+  }
+  .gh-avatar {
+    width: 100%;
+    aspect-ratio: 3 / 4;
+    object-fit: cover;
+    object-position: center top;
+    display: block;
+    transition: transform .4s ease;
+  }
+  .gh-avatar-wrap:hover .gh-avatar { transform: scale(1.03); }
+
+  .gh-display-name { font-size: 1.25rem; font-weight: 600; color: var(--gh-text); margin: 0 0 2px; line-height: 1.25; }
+  .gh-handle { font-size: .9375rem; font-weight: 300; color: var(--gh-muted); margin: 0 0 16px; line-height: 1.4; }
+
+  .gh-btn-follow {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    width: 100%;
+    padding: 5px 14px;
+    font-size: 14px;
+    font-weight: 500;
+    color: var(--gh-text);
+    background: var(--gh-surface2);
+    border: 1px solid var(--gh-border);
+    border-radius: 6px;
+    cursor: pointer;
+    margin-bottom: 16px;
+    transition: background .15s, border-color .15s;
+  }
+  .gh-btn-follow:hover { background: #2d333b; border-color: #8b949e; }
+
+  .gh-stats-row { display: flex; align-items: center; flex-wrap: wrap; gap: 6px 8px; font-size: 14px; margin-bottom: 4px; }
+  .gh-stat { display: inline-flex; align-items: center; gap: 4px; }
+  .gh-stat strong { font-weight: 600; color: var(--gh-text); }
+  .gh-stat-icon { color: var(--gh-muted); }
+  .gh-stat-label { color: var(--gh-muted); }
+  .gh-stat-sep { color: var(--gh-muted); }
+
+  .gh-divider { height: 1px; background: var(--gh-border); margin: 16px 0; }
+
+  .gh-sidebar-block { margin-bottom: 4px; }
+  .gh-sidebar-label {
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--gh-text);
+    margin: 0 0 10px;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+  .gh-sidebar-count {
+    font-weight: 400;
+    font-size: 12px;
+    background: rgba(110,118,129,.2);
+    color: var(--gh-muted);
+    padding: 1px 6px;
+    border-radius: 20px;
+  }
+
+  .gh-lang-list { display: flex; flex-direction: column; gap: 5px; }
+  .gh-lang-row { display: flex; align-items: center; gap: 8px; font-size: 12px; }
+  .gh-lang-dot { width: 12px; height: 12px; border-radius: 50%; flex-shrink: 0; }
+  .gh-lang-name { color: var(--gh-text); flex: 1; font-size: 13px; }
+  .gh-lang-pct { color: var(--gh-muted); font-size: 12px; font-variant-numeric: tabular-nums; }
+
+  .gh-sidebar-link {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 14px;
+    color: var(--gh-link);
+    text-decoration: none;
+    padding: 3px 0;
+    transition: color .15s;
+  }
+  .gh-sidebar-link:hover { text-decoration: underline; }
+  .gh-sidebar-link-icon { color: var(--gh-muted); flex-shrink: 0; }
+
+  /* Compact achievement list in sidebar */
+  .gh-ach-compact { display: flex; flex-direction: column; gap: 8px; }
+  .gh-ach-badge { display: flex; align-items: center; gap: 10px; }
+  .gh-ach-icon {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, rgba(212,168,83,.25), rgba(212,168,83,.06));
+    border: 1px solid rgba(212,168,83,.35);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.2rem;
+    flex-shrink: 0;
+  }
+  .gh-ach-meta { display: flex; flex-direction: column; min-width: 0; }
+  .gh-ach-name { font-size: 13px; color: var(--gh-text); font-weight: 500; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .gh-ach-cat { font-size: 11px; color: var(--gh-muted); }
+
+  /* ═══ Main content ═════════════════════════════════════════════════ */
+  .gh-main { display: flex; flex-direction: column; gap: 16px; min-width: 0; }
+
+  /* ── Cards ──────────────────────────────────────────────────────── */
+  .gh-card {
+    background: var(--gh-surface);
+    border: 1px solid var(--gh-border);
+    border-radius: 6px;
+    overflow: hidden;
+    transition: border-color .2s;
+  }
+  .gh-card:hover { border-color: #8b949e; }
+  .gh-card-header {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 12px 16px;
+    border-bottom: 1px solid var(--gh-border);
+    font-size: 14px;
+    user-select: none;
+  }
+  .gh-card-icon { color: var(--gh-muted); flex-shrink: 0; }
+  .gh-card-title { display: flex; align-items: center; }
+  .gh-card-body { padding: 16px; }
+  .gh-pin-badge {
+    display: inline-block;
+    padding: 1px 8px;
+    font-size: 12px;
+    font-weight: 500;
+    border: 1px solid var(--gh-border);
+    border-radius: 20px;
+    color: var(--gh-muted);
+    background: var(--gh-bg);
+  }
+
+  /* README card: inner body uses page bg so DraggableCharacter canvas blends */
+  .gh-readme-body { background: var(--gh-bg); }
+
+  /* ContributionGraph: strip the glass-panel wrapper to match flat style */
+  .gh-contrib-wrap :global(.glass-panel) {
+    background: transparent !important;
+    border: none !important;
+    box-shadow: none !important;
+    padding: 0 !important;
+    -webkit-backdrop-filter: none !important;
+    backdrop-filter: none !important;
+  }
+
+  /* ── Section headings ───────────────────────────────────────────── */
+  .gh-section-row { display: flex; align-items: center; justify-content: space-between; }
+  .gh-section-title {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 16px;
+    font-weight: 600;
+    color: var(--gh-text);
+    margin: 0;
+  }
+  .gh-section-icon { color: var(--gh-muted); }
+  .gh-count-badge {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    background: rgba(110,118,129,.2);
+    color: var(--gh-text);
+    font-size: 12px;
+    font-weight: 500;
+    padding: 1px 6px;
+    border-radius: 20px;
+    min-width: 20px;
+  }
+  .gh-hint { font-size: 13px; color: var(--gh-link); cursor: default; }
+
+  /* ── BlogAvatarGrid: override card colors ───────────────────────── */
+  .gh-blog-wrap :global([class*="rounded-xl"]) {
+    border-color: var(--gh-border) !important;
+    background: var(--gh-surface) !important;
+  }
+  .gh-blog-wrap :global([class*="rounded-xl"]:hover) {
+    border-color: var(--gh-accent) !important;
+    box-shadow: 0 0 0 1px rgba(212,168,83,.4), 0 8px 24px rgba(0,0,0,.35) !important;
+  }
+
+  /* ── Achievement grid ───────────────────────────────────────────── */
+  .gh-ach-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(230px, 1fr));
+    gap: 8px;
+  }
+  .gh-ach-card {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 12px 14px;
+    background: var(--gh-surface);
+    border: 1px solid var(--gh-border);
+    border-radius: 6px;
+    cursor: default;
+    transition: border-color .15s, box-shadow .15s;
+  }
+  .gh-ach-card:hover {
+    border-color: var(--gh-accent);
+    box-shadow: 0 0 0 1px rgba(212,168,83,.3), 0 4px 12px rgba(0,0,0,.3);
+  }
+  .gh-ach-card-icon {
+    width: 44px;
+    height: 44px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, rgba(212,168,83,.28), rgba(212,168,83,.07));
+    border: 1px solid rgba(212,168,83,.4);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.375rem;
+    flex-shrink: 0;
+  }
+  .gh-ach-card-body { display: flex; flex-direction: column; min-width: 0; }
+  .gh-ach-card-cat { font-size: 11px; color: var(--gh-muted); text-transform: uppercase; letter-spacing: .06em; }
+  .gh-ach-card-title { font-size: 14px; font-weight: 600; color: var(--gh-text); margin: 2px 0; }
+  .gh-ach-card-date { font-size: 12px; color: var(--gh-muted); }
+
+  /* ═══ Footer ═══════════════════════════════════════════════════════ */
+  .gh-footer { border-top: 1px solid var(--gh-border); background: var(--gh-bg); margin-top: 40px; }
+  .gh-footer-inner {
+    max-width: 1280px;
+    margin: 0 auto;
+    padding: 16px 32px;
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    font-size: 12px;
+    color: var(--gh-muted);
+  }
+  .gh-footer-nav { display: flex; align-items: center; gap: 16px; }
+  .gh-footer-link { color: var(--gh-muted); text-decoration: none; transition: color .15s; }
+  .gh-footer-link:hover { color: var(--gh-link); text-decoration: underline; }
+
+  /* ═══ Prose styles (content rendering) ════════════════════════════ */
+  :global(.prose) { color: inherit; }
+  :global(.prose h2) {
+    @apply font-bold mt-6 mb-3 text-3xl;
+    background: linear-gradient(to right, #e6edf3, #d4a853);
+    -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;
+  }
+  :global(.prose h3)         { color: #d4a853; @apply font-bold mt-4 mb-2 text-2xl; }
+  :global(.prose strong)     { color: #d4a853; @apply font-bold; }
+  :global(.prose code)       { @apply bg-black/40 px-2 py-1 rounded text-sm; color: #d4a853; }
+  :global(.prose pre)        { @apply bg-black/40 border border-white/10 rounded-lg p-4 overflow-x-auto; }
+  :global(.prose a)          { color: var(--gh-link); @apply underline transition-colors; }
+  :global(.prose ul),
+  :global(.prose ol)         { @apply ml-6 space-y-2; }
+  :global(.prose li)         { color: rgba(230,237,243,.8); }
+  :global(.prose li::marker) { color: #d4a853; }
+  :global(.prose blockquote) { @apply border-l-4 pl-4 italic; border-color: rgba(212,168,83,.4); color: rgba(230,237,243,.7); }
+  :global(.prose-outlook p)  { color: rgba(230,237,243,.8); line-height: 1.8; font-size: 0.875rem; }
 </style>

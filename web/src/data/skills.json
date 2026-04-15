@@ -48,7 +48,13 @@
     "description": "服务器端运行时，支持 API 与构建流程。"
   },
   {
-    "name": "Express",
+    "name": "Exprress",
+    "proficiency": 72,
+    "class": "后端",
+    "description": "轻量级后端框架，构建 RESTful API 与中间件。"
+  },
+    {
+    "name": "Exprewess",
     "proficiency": 72,
     "class": "后端",
     "description": "轻量级后端框架，构建 RESTful API 与中间件。"

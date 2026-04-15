@@ -1,0 +1,155 @@
+---
+import Layout from '../../layouts/Layout.astro';
+import { getCollection } from 'astro:content';
+
+export async function getStaticPaths() {
+  const logs = await getCollection('daily-log');
+  return logs.map((entry) => ({
+    params: { slug: entry.slug },
+    props: { entry },
+  }));
+}
+
+const { entry } = Astro.props;
+const { Content } = await entry.render();
+
+const dateStr = (entry.data.date as Date).toLocaleDateString('zh-CN', {
+  year: 'numeric',
+  month: 'long',
+  day: 'numeric',
+});
+---
+
+<Layout title={entry.data.title}>
+  <main class="min-h-screen py-20 px-4">
+    <article class="max-w-2xl mx-auto">
+
+      {/* Back link */}
+      <a
+        href="/#contribution"
+        class="inline-flex items-center gap-2 text-sm text-genshin-light/50
+               hover:text-genshin-gold transition-colors duration-200 mb-8"
+      >
+        <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
+          <path d="M9 2L4 7L9 12" stroke="currentColor" stroke-width="1.5"
+                stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+        返回首页
+      </a>
+
+      {/* Article header */}
+      <div class="glass-panel mb-8">
+        <div class="flex items-center gap-3 mb-3">
+          <span class="text-xs text-genshin-light/40 tracking-widest">{dateStr}</span>
+          {entry.data.tags.length > 0 && (
+            <div class="flex gap-2 flex-wrap">
+              {entry.data.tags.map((tag: string) => (
+                <span
+                  key={tag}
+                  class="text-xs px-2 py-0.5 rounded-full
+                         border border-genshin-gold/30
+                         text-genshin-gold/70 tracking-wider"
+                >
+                  {tag}
+                </span>
+              ))}
+            </div>
+          )}
+        </div>
+        <h1 class="text-2xl font-bold text-genshin-light tracking-wide">
+          {entry.data.title}
+        </h1>
+      </div>
+
+      {/* Markdown content */}
+      <div class="glass-card prose-daily">
+        <Content />
+      </div>
+
+    </article>
+  </main>
+</Layout>
+
+<style is:global>
+  /* Prose styles for daily-log Markdown */
+  .prose-daily {
+    color: rgba(245, 241, 232, 0.85);
+    line-height: 1.75;
+    font-size: 0.95rem;
+  }
+
+  .prose-daily h2 {
+    font-size: 1.15rem;
+    font-weight: 700;
+    color: rgba(245, 241, 232, 0.95);
+    margin: 1.5rem 0 0.75rem;
+    padding-bottom: 0.35rem;
+    border-bottom: 1px solid rgba(212, 175, 112, 0.2);
+    letter-spacing: 0.05em;
+  }
+
+  .prose-daily h3 {
+    font-size: 1rem;
+    font-weight: 600;
+    color: rgba(245, 241, 232, 0.9);
+    margin: 1.25rem 0 0.5rem;
+  }
+
+  .prose-daily p {
+    margin: 0.75rem 0;
+  }
+
+  .prose-daily ul,
+  .prose-daily ol {
+    padding-left: 1.4rem;
+    margin: 0.6rem 0;
+  }
+
+  .prose-daily li {
+    margin: 0.3rem 0;
+  }
+
+  .prose-daily li::marker {
+    color: rgba(212, 175, 112, 0.6);
+  }
+
+  .prose-daily strong {
+    color: rgba(212, 175, 112, 0.9);
+    font-weight: 600;
+  }
+
+  .prose-daily code {
+    background: rgba(255, 255, 255, 0.06);
+    border: 1px solid rgba(212, 175, 112, 0.15);
+    border-radius: 4px;
+    padding: 0.15em 0.4em;
+    font-size: 0.88em;
+    font-family: 'Courier New', Consolas, monospace;
+    color: rgba(212, 175, 112, 0.85);
+  }
+
+  .prose-daily pre {
+    background: rgba(0, 0, 0, 0.35);
+    border: 1px solid rgba(212, 175, 112, 0.12);
+    border-radius: 8px;
+    padding: 1rem 1.25rem;
+    overflow-x: auto;
+    margin: 1rem 0;
+  }
+
+  .prose-daily pre code {
+    background: none;
+    border: none;
+    padding: 0;
+    font-size: 0.85rem;
+    color: rgba(245, 241, 232, 0.8);
+  }
+
+  .prose-daily blockquote {
+    border-left: 3px solid rgba(212, 175, 112, 0.4);
+    padding-left: 1rem;
+    color: rgba(245, 241, 232, 0.6);
+    font-style: italic;
+    margin: 1rem 0;
+  }
+</style>
