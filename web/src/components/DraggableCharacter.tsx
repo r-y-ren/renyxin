@@ -24,17 +24,27 @@ interface DraggableCharacterProps {
 // ==================== 布局常量 ====================
 const CHARACTER_WIDTH = 250 * 1.85; // 角色图片宽度
 const CHARACTER_HEIGHT = 360 * 1; // 角色图片高度
-const BASE_LEFT = 6; // 图片初始左偏移
-const BASE_TOP = 5; // 图片初始上偏移
+const BASE_LEFT = -70; // 图片初始左偏移
+const BASE_TOP =0; // 图片初始上偏移
 const BODY_FONT_SIZE = 20; // 正文字体大小（像素）
 const BODY_LINE_HEIGHT = 34; // 正文行高（像素）
 const BODY_FONT = `${BODY_FONT_SIZE}px Georgia, "Times New Roman", serif`; // 字体描述
 const BODY_TEXT_COLOR = "rgba(236, 229, 216, 0.92)"; // 正文颜色
-const CANVAS_PADDING_X = 4; // 画布水平内边距
-const CANVAS_PADDING_Y = 2; // 画布垂直内边距
-const OBSTACLE_PAD_X = 6; // 障碍物水平额外内缩量（避免文字紧贴图片）
-const OBSTACLE_PAD_Y = 6; // 障碍物垂直额外内缩量
+const CANVAS_PADDING_X = 12; // 画布水平内边距
+const CANVAS_PADDING_Y = 0; // 画布垂直内边距
 const STAGE_MIN_HEIGHT = 560; // 舞台最小高度（未使用，保留备用）
+
+// ── 虚拟碰撞箱偏移量（单一事实来源）──────────────────────────────────────
+// 碰撞箱边缘相对于图片物理边缘的偏移量，同时驱动文字环绕排版与拖拽约束。
+// 定义：
+//   hitboxLeft   = imageX + HITBOX_OFFSET_L
+//   hitboxRight  = imageX + CHARACTER_WIDTH  + HITBOX_OFFSET_R
+//   hitboxTop    = imageY + HITBOX_OFFSET_T
+//   hitboxBottom = imageY + CHARACTER_HEIGHT + HITBOX_OFFSET_B
+const HITBOX_OFFSET_L = 80; // 左边界向内缩 90px（图片左侧透明区域不遮挡文字）
+const HITBOX_OFFSET_R = -90; // 右边界向内缩 90px（同上，右侧透明区域）
+const HITBOX_OFFSET_T = 30; // 顶边界向下偏移 38px（原 -OBSTACLE_PAD_Y + 100 = -62+100）
+const HITBOX_OFFSET_B = 79; // 底边界向下延伸 72px
 
 // ==================== 类型定义 ====================
 type Size = {
@@ -139,7 +149,8 @@ function sameCursor(left: LayoutCursor, right: LayoutCursor): boolean {
 
 /**
  * 计算给定文本行（由 lineTop 和 lineBottom 定义垂直范围）的水平可用槽位
- * 基于胶囊体障碍物（带内边距）与行的相交情况，返回左/右两侧可排文的区域
+ * 基于矩形障碍物（带内边距）与行的相交情况，返回左/右两侧可排文的区域。
+ * 采用矩形而非胶囊体，避免顶/底圆弧处宽度收窄导致文字错误出现在角色顶部左侧的问题。
  */
 function computeLineSlots(
   lineTop: number,
@@ -147,72 +158,38 @@ function computeLineSlots(
   innerWidth: number,
   obstacle: CapsuleObstacle,
 ): LineSlot[] {
-  // 扩大障碍物区域，加入内边距
-  const expandedX = obstacle.x - OBSTACLE_PAD_X;
-  const expandedY = obstacle.y - OBSTACLE_PAD_Y;
-  const expandedW = obstacle.width + OBSTACLE_PAD_X * 2;
-  const expandedH = obstacle.height + OBSTACLE_PAD_Y * 2;
-  const obstacleTop = expandedY;
-  const obstacleBottom = expandedY + expandedH;
-  const intersects = lineBottom > obstacleTop && lineTop < obstacleBottom;
+  // 从图片物理边缘应用碰撞箱偏移量，得到排版绕排边界
+  const expandedLeft = obstacle.x + HITBOX_OFFSET_L;
+  const expandedRight = obstacle.x + obstacle.width + HITBOX_OFFSET_R;
+  const expandedTop = obstacle.y + HITBOX_OFFSET_T;
+  const expandedBottom = obstacle.y + obstacle.height + HITBOX_OFFSET_B;
+
+  const intersects = lineBottom > expandedTop && lineTop < expandedBottom;
 
   // 若无交集，整行可用
   if (!intersects) {
     return [{ x: 0, width: innerWidth }];
   }
 
-  // 计算胶囊体的圆角半径（取宽高较小一半，因为胶囊两端是半圆）
-  const radius = Math.min(expandedW / 2, expandedH / 2);
-  const centerX = expandedX + expandedW / 2;
-  const topCapCenterY = expandedY + radius;
-  const bottomCapCenterY = expandedY + expandedH - radius;
+  // 矩形障碍物：左/右遮挡边界直接由扩展后的矩形决定
+  const blockedLeft = Math.max(0, expandedLeft);
+  const blockedRight = Math.min(innerWidth, expandedRight);
 
-  /**
-   * 根据垂直位置 Y 计算胶囊体在该高度处的半宽（垂直于 X 轴的半径）
-   * - 上端半圆区域用圆弧公式 sqrt(r² - dy²)
-   * - 下端半圆区域同理
-   * - 中间矩形部分直接取半径（即宽的一半）
-   */
-  const halfWidthAtY = (sampleY: number) => {
-    if (sampleY < topCapCenterY) {
-      const dy = topCapCenterY - sampleY;
-      return Math.sqrt(Math.max(0, radius * radius - dy * dy));
-    }
-
-    if (sampleY > bottomCapCenterY) {
-      const dy = sampleY - bottomCapCenterY;
-      return Math.sqrt(Math.max(0, radius * radius - dy * dy));
-    }
-
-    return expandedW / 2;
-  };
-
-  // 采样行的顶部、中部、底部三处，取最大半宽以确保完全避让障碍物
-  const bandMidY = (lineTop + lineBottom) / 2;
-  const halfWidth = Math.max(
-    halfWidthAtY(lineTop),
-    halfWidthAtY(bandMidY),
-    halfWidthAtY(lineBottom),
-  );
-
-  const blockedLeft = Math.max(0, centerX - halfWidth);
-  const blockedRight = Math.min(innerWidth, centerX + halfWidth);
-
-  const leftWidth = Math.max(0, blockedLeft);
-  const rightX = Math.max(0, blockedRight);
-  const rightWidth = Math.max(0, innerWidth - rightX);
   const slots: LineSlot[] = [];
 
-  // 仅当槽位宽度足以容纳至少约2个字符时才添加（避免极端窄的碎片槽）
-  if (leftWidth >= BODY_FONT_SIZE * 2) {
-    slots.push({ x: 0, width: leftWidth });
+  // 左侧槽位：obstacle 左边与画布左边之间的区域
+  // 若左边界落在画布左侧内且宽度足以排下至少 2 个字符才添加
+  if (blockedLeft >= BODY_FONT_SIZE * 2) {
+    slots.push({ x: 0, width: blockedLeft });
   }
 
+  // 右侧槽位：obstacle 右边到画布右边的区域
+  const rightWidth = Math.max(0, innerWidth - blockedRight);
   if (rightWidth >= BODY_FONT_SIZE * 2) {
-    slots.push({ x: rightX, width: rightWidth });
+    slots.push({ x: blockedRight, width: rightWidth });
   }
 
-  // 若没有有效槽位，返回一个全宽槽位防止死循环（实际上很少触发）
+  // 若没有有效槽位，返回全宽兜底（极少发生，防止死循环）
   return slots.length > 0 ? slots : [{ x: 0, width: innerWidth }];
 }
 
@@ -379,18 +356,18 @@ export default function DraggableCharacter({
   }, [plainText]);
 
   // ==================== 计算拖拽约束边界 ====================
+  // 约束目标：碰撞箱的四条边恰好贴合画布边缘时，x/y 的极值。
+  //   hitboxLeft  = BASE_LEFT + x + HITBOX_OFFSET_L  →  x_min = -(BASE_LEFT + HITBOX_OFFSET_L)
+  //   hitboxRight = BASE_LEFT + x + CHARACTER_WIDTH + HITBOX_OFFSET_R = containerWidth  →  x_max
+  //   同理 y 方向
   const constraints = useMemo(() => {
-    const maxX = Math.max(0, containerSize.width - BASE_LEFT - CHARACTER_WIDTH);
-    const maxY = Math.max(
-      0,
-      containerSize.height - BASE_TOP - CHARACTER_HEIGHT,
-    );
-
     return {
-      left: -BASE_LEFT,
-      top: -BASE_TOP,
-      right: maxX,
-      bottom: maxY,
+      left: -(BASE_LEFT + HITBOX_OFFSET_L),
+      right:
+        containerSize.width - BASE_LEFT - CHARACTER_WIDTH - HITBOX_OFFSET_R,
+      top: -(BASE_TOP + HITBOX_OFFSET_T),
+      bottom:
+        containerSize.height - BASE_TOP - CHARACTER_HEIGHT - HITBOX_OFFSET_B,
     };
   }, [containerSize.height, containerSize.width]);
 
@@ -398,11 +375,9 @@ export default function DraggableCharacter({
     if (hasCenteredCharacterRef.current) return;
     if (containerSize.width <= 0 || containerSize.height <= 0) return;
 
-    const centeredX = (containerSize.width - CHARACTER_WIDTH) / 2 - BASE_LEFT;
-    const centeredY = (containerSize.height - CHARACTER_HEIGHT) / 2 - BASE_TOP;
-
-    x.set(centeredX);
-    y.set(centeredY);
+    // 默认将角色放置在左上角：x=0 / y=0 对应图片左上角位于 (BASE_LEFT, BASE_TOP)
+    x.set(0);
+    y.set(0);
     hasCenteredCharacterRef.current = true;
   }, [containerSize.height, containerSize.width, x, y]);
 
@@ -443,15 +418,12 @@ export default function DraggableCharacter({
     ctx.textBaseline = "alphabetic";
     ctx.textRendering = "optimizeLegibility";
 
-    // 障碍物内缩量，使文字与图片之间留有间距，视觉更舒适
-    const HITBOX_SHRINK = 25;
-
-    // 构建障碍物（胶囊体），坐标基于图片当前位置
+    // 构建矩形障碍物，以图片实际边界为基准，OBSTACLE_PAD 在 computeLineSlots 内追加
     const obstacle: CapsuleObstacle = {
-      x: BASE_LEFT + x.get() + HITBOX_SHRINK,
-      y: BASE_TOP + y.get() + HITBOX_SHRINK,
-      width: CHARACTER_WIDTH - HITBOX_SHRINK * 2,
-      height: CHARACTER_HEIGHT - HITBOX_SHRINK * 2,
+      x: BASE_LEFT + x.get(),
+      y: BASE_TOP + y.get(),
+      width: CHARACTER_WIDTH,
+      height: CHARACTER_HEIGHT,
     };
 
     // 计算所有字符的绘制坐标与所需总高度
