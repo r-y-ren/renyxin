@@ -161,9 +161,7 @@ function AchievementTile({
             }}
           />
           {/* Icon rendered directly, no clip or border */}
-          <div
-            className="relative w-[72px] h-[72px] flex items-center justify-center text-[2.2rem] z-10"
-          >
+          <div className="relative w-[72px] h-[72px] flex items-center justify-center text-[2.2rem] z-10">
             {a.data.icon ?? "🏅"}
           </div>
         </div>
@@ -297,9 +295,7 @@ export default function AchievementGrid({
                             ease: "easeInOut",
                           }}
                         />
-                        <div
-                          className="w-24 h-24 flex items-center justify-center text-5xl z-10 relative"
-                        >
+                        <div className="w-24 h-24 flex items-center justify-center text-5xl z-10 relative">
                           {selected.data.icon ?? "🏅"}
                         </div>
                       </div>
@@ -322,7 +318,10 @@ export default function AchievementGrid({
                       >
                         {selected.data.title}
                       </h2>
-                      <time className="block text-xs mb-5" style={{ color: "#7d8590" }}>
+                      <time
+                        className="block text-xs mb-5"
+                        style={{ color: "#7d8590" }}
+                      >
                         {selected.data.date.toLocaleDateString("zh-CN", {
                           year: "numeric",
                           month: "long",
@@ -330,7 +329,10 @@ export default function AchievementGrid({
                         })}
                       </time>
                       {selected.body && (
-                        <p className="text-sm leading-relaxed" style={{ color: "rgba(230,237,243,0.7)" }}>
+                        <p
+                          className="text-sm leading-relaxed"
+                          style={{ color: "rgba(230,237,243,0.7)" }}
+                        >
                           {selected.body
                             .replace(/^---[\s\S]*?---\s*/, "")
                             .replace(/#+\s/g, "")
