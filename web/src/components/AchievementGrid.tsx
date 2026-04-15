@@ -122,9 +122,9 @@ function AchievementTile({
       <div
         className="relative overflow-hidden rounded-2xl p-5 flex flex-col items-center text-center"
         style={{
-          background: `linear-gradient(150deg, #131c2e 0%, #0c1220 55%, ${t.bg} 100%)`,
-          border: `1px solid ${t.border}55`,
-          boxShadow: `0 0 0 1px ${t.border}18, inset 0 1px 0 rgba(255,255,255,0.06), 0 8px 24px rgba(0,0,0,0.45)`,
+          background: `linear-gradient(150deg, #161b22 0%, #0d1117 80%, ${t.bg} 100%)`,
+          border: `1px solid #30363d`,
+          boxShadow: `inset 0 1px 0 rgba(255,255,255,0.04), 0 8px 24px rgba(0,0,0,0.45)`,
         }}
       >
         {/* Shimmer sweep */}
@@ -160,15 +160,9 @@ function AchievementTile({
               ease: "easeInOut",
             }}
           />
-          {/* Octagon shape */}
+          {/* Icon rendered directly, no clip or border */}
           <div
-            className="relative w-[72px] h-[72px] flex items-center justify-center text-[2rem] z-10"
-            style={{
-              clipPath: OCTAGON,
-              background: `linear-gradient(135deg, ${t.bg} 0%, rgba(10,14,26,0.95) 100%)`,
-              outline: `2px solid ${t.border}66`,
-              outlineOffset: "-2px",
-            }}
+            className="relative w-[72px] h-[72px] flex items-center justify-center text-[2.2rem] z-10"
           >
             {a.data.icon ?? "🏅"}
           </div>
@@ -189,13 +183,13 @@ function AchievementTile({
         {/* Title */}
         <h3
           className="font-bold text-[13px] leading-snug mb-2.5 px-1"
-          style={{ color: t.text }}
+          style={{ color: "#e6edf3" }}
         >
           {a.data.title}
         </h3>
 
         {/* Date */}
-        <time className="text-[11px] text-genshin-light/38 tabular-nums">
+        <time className="text-[11px] tabular-nums" style={{ color: "#7d8590" }}>
           {a.data.date.toLocaleDateString("zh-CN", {
             year: "numeric",
             month: "short",
@@ -258,9 +252,9 @@ export default function AchievementGrid({
                   <div
                     className="relative max-w-sm w-full rounded-3xl p-8 overflow-hidden"
                     style={{
-                      background: `linear-gradient(150deg, #131c2e 0%, #0c1220 60%, ${t.bg} 100%)`,
-                      border: `1px solid ${t.border}55`,
-                      boxShadow: `0 0 0 1px ${t.border}22, 0 32px 64px rgba(0,0,0,0.6)`,
+                      background: `linear-gradient(150deg, #161b22 0%, #0d1117 80%, ${t.bg} 100%)`,
+                      border: `1px solid #30363d`,
+                      boxShadow: `0 32px 64px rgba(0,0,0,0.6)`,
                     }}
                   >
                     {/* Close */}
@@ -305,12 +299,6 @@ export default function AchievementGrid({
                         />
                         <div
                           className="w-24 h-24 flex items-center justify-center text-5xl z-10 relative"
-                          style={{
-                            clipPath: OCTAGON,
-                            background: `linear-gradient(135deg, ${t.bg} 0%, rgba(10,14,26,0.95) 100%)`,
-                            outline: `2px solid ${t.border}77`,
-                            outlineOffset: "-2px",
-                          }}
                         >
                           {selected.data.icon ?? "🏅"}
                         </div>
@@ -330,11 +318,11 @@ export default function AchievementGrid({
                       </span>
                       <h2
                         className="text-xl font-bold mb-1"
-                        style={{ color: t.text }}
+                        style={{ color: "#e6edf3" }}
                       >
                         {selected.data.title}
                       </h2>
-                      <time className="block text-xs text-genshin-light/45 mb-5">
+                      <time className="block text-xs mb-5" style={{ color: "#7d8590" }}>
                         {selected.data.date.toLocaleDateString("zh-CN", {
                           year: "numeric",
                           month: "long",
@@ -342,7 +330,7 @@ export default function AchievementGrid({
                         })}
                       </time>
                       {selected.body && (
-                        <p className="text-genshin-light/70 text-sm leading-relaxed">
+                        <p className="text-sm leading-relaxed" style={{ color: "rgba(230,237,243,0.7)" }}>
                           {selected.body
                             .replace(/^---[\s\S]*?---\s*/, "")
                             .replace(/#+\s/g, "")
