@@ -1,11 +1,11 @@
 ---
 title: 联系方式
-copyright: "© 2024 人亦心"
+copyright: "© 2026 renyxin"
 links:
   - label: GitHub
-    href: "https://github.com/"
+    href: "https://github.com/r-y-ren"
   - label: Email
-    href: "mailto:hello@example.com"
-  - label: X / 社交媒体
-    href: "#"
+    href: "https://r.y.renxin@gmail.com"
+  - label: QQ / 社交媒体
+    href: "https://qm.qq.com/q/f6PB1YWqLC"
 ---

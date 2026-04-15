@@ -12,7 +12,7 @@
  *
  * 数据来源：
  *   props.imageSrc     → heroEntry.data.characterImage（src/content/site-info/hero.md）
- *   props.imageAlt     → heroEntry.data.characterAlt（同上）
+ *   props.imageAlt     → heroEntry.data.avatarAlt（同上）
  *   props.markdownHtml → marked.parse(heroEntry.body)（由 index.astro 提前渲染）
  *   props.title        → heroEntry.data.title（同上）
  *
@@ -525,9 +525,6 @@ export default function DraggableCharacter({
             {title}
           </span>
         </h2>
-        <p className="text-genshin-gold text-sm md:text-base tracking-widest uppercase">
-          拖拽人物可实时改变文本环绕布局
-        </p>
       </div>
 
       {/* 舞台容器：相对定位，包含 Canvas 文字层和可拖拽图片层 */}

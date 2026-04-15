@@ -95,8 +95,9 @@ const siteInfoCollection = defineCollection({
     title: z.string(), // 标题（通用字段）
     subtitle: z.string().optional(), // 副标题，可选
     // ── Hero 专用字段 ──────────────────────────────────────────────
+    avatarImage: z.string().optional(), // 侧边栏头像路径（与立绘分开）
     characterImage: z.string().optional(), // 角色立绘路径，如 /pictures/胡桃.png
-    characterAlt: z.string().optional(), // 立绘 alt 文字，用于无障碍访问
+    avatarAlt: z.string().optional(), // 立绘 alt 文字，用于无障碍访问
     // ── Footer 专用字段 ────────────────────────────────────────────
     copyright: z.string().optional(), // 版权文字，如 "© 2025 人亦心"
     links: z
