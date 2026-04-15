@@ -1,6 +1,6 @@
 ---
-title: 旅行者档案
-subtitle: 热爱探索边界的前端开发者与数字工匠
+title: 千心の鱼
+subtitle: 努力学习，好好吃饭の二次元~
 characterImage: /pictures/胡桃.png
 characterAlt: 胡桃立绘
 ---

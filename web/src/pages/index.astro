@@ -1,19 +1,52 @@
 ---
+/**
+ * src/pages/index.astro
+ * ──────────────────────────────────────────────────────────────────────────────
+ * 网站首页（唯一的 SSG 静态入口页面）。
+ * 构建时 Astro 执行 frontmatter（--- 之间的代码），从 Content Collections
+ * 读取所有数据并渲染为完整 HTML 页面。
+ *
+ * 整体布局仿照 GitHub Profile 页风格（深色，左侧边栏 + 右侧主内容）：
+ *   HEADER  → 顶部固定导航栏（Logo + 面包屑 + 社交链接）
+ *   TABBAR  → 导航标签栏（Overview / 博客 / 成就 / 技能）
+ *   SIDEBAR → 左侧个人信息栏（头像 / 名字 / 统计 / 技术栈 / 成就 / 链接）
+ *   MAIN    → 右侧主内容：
+ *               1. README 卡片（DraggableCharacter —— 可拖拽角色 + 文字环绕）
+ *               2. 贡献热力图（ContributionGraph）
+ *               3. 博客文章网格（BlogGrid）
+ *               4. 技能星座图（SkillConstellation）
+ *               5. 成就系统（AchievementGrid）
+ *               6. 关于未来（DraggableOutlook）
+ *   FOOTER  → 版权信息 + 社交链接
+ *
+ * 数据来源（全部为 src/content/ 本地 Markdown，构建时解析）：
+ *   blog         → src/content/blog/*.md
+ *   achievements → src/content/achievements/*.md
+ *   skills       → src/content/skills/*.md
+ *   site-info    → src/content/site-info/{hero,outlook,footer}.md
+ *   daily-log    → src/content/daily-log/*.md
+ */
 import Layout from '../layouts/Layout.astro';
 import { getCollection, getEntry } from 'astro:content';
+// 交互组件（React Islands，需要 client: 指令激活）
 import DraggableCharacter from '../components/DraggableCharacter';
 import SkillConstellation from '../components/SkillConstellation';
 import ContributionGraph from '../components/ContributionGraph';
 import BlogGrid from '../components/BlogGrid';
 import AchievementGrid from '../components/AchievementGrid';
 import DraggableOutlook from '../components/DraggableOutlook';
+// ContributionGraph 的日志条目类型（供 TypeScript 推断）
 import type { DailyLogEntry } from '../components/ContributionGraph';
+// marked：将 Markdown 字符串转换为 HTML（用于 heroEntry/outlookEntry 正文）
 import { marked } from 'marked';
 
-// ── Blog & Achievements ──────────────────────────────────────────────────────
+// ── ① 博客文章与成就数据 ─────────────────────────────────────────────────────
+// 数据来源：src/content/blog/*.md  |  src/content/achievements/*.md
+// getCollection 在构建时从磁盘读取所有条目并按 schema 校验
 const blogPosts = await getCollection('blog');
 const achievements = await getCollection('achievements');
 
+// 按日期降序排列（最新的在前）
 const sortedPosts = blogPosts.sort((a, b) =>
   new Date(b.data.date).getTime() - new Date(a.data.date).getTime()
 );
@@ -21,7 +54,9 @@ const sortedAchievements = achievements.sort((a, b) =>
   new Date(b.data.date).getTime() - new Date(a.data.date).getTime()
 );
 
-// ── Skills from Content Collections ─────────────────────────────────────────
+// ── ② 技能数据（用于侧边栏技术栈列表和技能星座图）────────────────────────────
+// 数据来源：src/content/skills/*.md（每个文件一项技能）
+// 映射为普通对象数组传给 SkillConstellation 和侧边栏渲染
 const skillEntries = await getCollection('skills');
 const skillsData = skillEntries.map((e) => ({
   name: e.data.name,
@@ -30,26 +65,37 @@ const skillsData = skillEntries.map((e) => ({
   description: e.data.description,
 }));
 
-// ── Site info from Content Collections ──────────────────────────────────────
+// ── ③ 站点配置（Hero、Outlook、Footer）── ─────────────────────────────────────
+// 数据来源：src/content/site-info/*.md，单条查询
+//   hero.md    → 页面标题 / 角色立绘路径 / 个人简介（Markdown 正文）
+//   outlook.md → "关于未来"卡片文案
+//   footer.md  → 版权文字 + 社交链接数组
 const heroEntry    = await getEntry('site-info', 'hero');
 const outlookEntry = await getEntry('site-info', 'outlook');
 const footerEntry  = await getEntry('site-info', 'footer');
 
+// 将 Markdown 正文渲染为 HTML 字符串，传给 Canvas 组件和 DraggableOutlook 组件
 const introHtml   = marked.parse(heroEntry!.body) as string;
 const outlookHtml = marked.parse(outlookEntry!.body) as string;
 
+// 页脚社交链接列表（footerEntry.data.links 为 {label, href}[] 或 undefined）
 const footerLinks     = footerEntry?.data.links ?? [];
+// 页脚版权文字，fallback 到 '© 2024'
 const footerCopyright = footerEntry?.data.copyright ?? '© 2024';
 
-// ── Daily logs for ContributionGraph ────────────────────────────────────────
+// ── ④ 每日日志条目（用于 ContributionGraph 热力图）─────────────────────────────
+// 数据来源：src/content/daily-log/*.md（文件名 = 日期 = slug）
+// 映射为 DailyLogEntry 类型（slug / date / title），供 ContributionGraph 计算格子颜色
 const rawLogs = await getCollection('daily-log');
 const dailyLogs: DailyLogEntry[] = rawLogs.map((entry) => ({
   slug: entry.slug,
+  // 将 Date 对象转为 "YYYY-MM-DD" 字符串，与热力图格子的 dateKey 对齐
   date: (entry.data.date as Date).toISOString().slice(0, 10),
   title: entry.data.title,
 }));
 
-// ── Blog posts with rendered content ────────────────────────────────────────
+// ── ⑤ 博客文章（含渲染后的 HTML 与摘要）─────────────────────────────────────
+// BlogGrid 需要完整 HTML 内容用于展开弹窗，以及纯文本摘要用于卡片预览
 interface BlogPostWithContent {
   slug: string;
   data: {
@@ -58,29 +104,33 @@ interface BlogPostWithContent {
     tags: string[];
     coverImage?: string;
   };
-  html: string;
-  excerpt: string;
+  html: string;    // 由 marked 渲染后的完整 HTML
+  excerpt: string; // 前 150 字符的纯文本摘要，末尾加 "..."
 }
 
 const postsWithContent: BlogPostWithContent[] = sortedPosts.map((post) => {
+  // 剥离 frontmatter（--- ... ---）只保留正文
   const body = post.body.replace(/^---[\s\S]*?---\s*/, '');
+  // 提取纯文本：移除 Markdown 标记符，用于生成摘要
   const textContent = body
-    .replace(/#+\s/g, '')
-    .replace(/[*_]/g, '')
-    .replace(/\[([^\]]+)\]\([^)]*\)/g, '$1')
+    .replace(/#+\s/g, '')              // 移除标题井号
+    .replace(/[*_]/g, '')             // 移除粗体/斜体符号
+    .replace(/\[([^\]]+)\]\([^)]*\)/g, '$1') // 提取链接文字
     .trim();
   const excerpt = textContent.substring(0, 150) + '...';
+  // 将完整正文渲染为 HTML，供展开弹窗使用
   const html = marked(body) as string;
   return { slug: post.slug, data: post.data, html, excerpt };
 });
 
-// ── Achievement columns for staggered layout ──────────────────────────────
+// ── ⑥ 成就分列（已计算但当前未在模板中使用，保留供未来布局扩展）─────────────
+// 将成就按索引分为三列，用于瀑布流/错列布局
 const achCol1 = sortedAchievements.filter((_, i) => i % 3 === 0);
 const achCol2 = sortedAchievements.filter((_, i) => i % 3 === 1);
 const achCol3 = sortedAchievements.filter((_, i) => i % 3 === 2);
 ---
 
-<Layout title="人亦心的数字空间" showStarfield={false}>
+<Layout title="Renyxin's digital world" showStarfield={false}>
 <div class="gh-root">
 
   <!-- ╔══════════════════════════════════════════════════════╗ -->
@@ -105,7 +155,7 @@ const achCol3 = sortedAchievements.filter((_, i) => i % 3 === 2);
   </header>
 
   <!-- ╔══════════════════════════════════════════════════════╗ -->
-  <!-- ║  PROFILE TABS                                        ║ -->
+  <!-- ║  个人资料标签页                                       ║ -->
   <!-- ╚══════════════════════════════════════════════════════╝ -->
   <nav class="gh-tabbar" aria-label="用户资料导航">
     <div class="gh-tabbar-inner">
@@ -113,7 +163,7 @@ const achCol3 = sortedAchievements.filter((_, i) => i % 3 === 2);
         <svg class="gh-tab-icon" viewBox="0 0 16 16" width="16" height="16" fill="currentColor" aria-hidden="true">
           <path d="M8 8a3 3 0 1 0 0-6 3 3 0 0 0 0 6Zm2-3a2 2 0 1 1-4 0 2 2 0 0 1 4 0Zm4 8c0 1-1 1-1 1H3s-1 0-1-1 1-4 6-4 6 3 6 4Zm-1-.004c-.001-.246-.154-.986-.832-1.664C11.516 10.68 10.289 10 8 10c-2.29 0-3.516.68-4.168 1.332-.678.678-.83 1.418-.832 1.664h10Z"/>
         </svg>
-        Overview
+        概览
       </button>
       <button class="gh-tab" type="button">
         <svg class="gh-tab-icon" viewBox="0 0 16 16" width="16" height="16" fill="currentColor" aria-hidden="true">
@@ -148,7 +198,9 @@ const achCol3 = sortedAchievements.filter((_, i) => i % 3 === 2);
       <!-- ── SIDEBAR ─────────────────────────────────────── -->
       <aside class="gh-sidebar">
 
-        <!-- Avatar (character portrait, portrait-ratio frame) -->
+        <!-- Avatar (角色头像，肖像比例相框) -->
+        <!-- ??表达式，当左侧表达式的值是 null 或 undefined 时，返回右侧的默认值；否则返回左侧的值。 -->
+         <!-- 没有给路径时，使用默认头像 -->
         <div class="gh-avatar-wrap">
           <img
             src={heroEntry!.data.characterImage ?? '/pictures/胡桃.png'}
@@ -159,7 +211,7 @@ const achCol3 = sortedAchievements.filter((_, i) => i % 3 === 2);
 
         <!-- Identity -->
         <h1 class="gh-display-name">{heroEntry!.data.title}</h1>
-        <p class="gh-handle">{heroEntry!.data.subtitle ?? '旅行者 · 开发者'}</p>
+        <p class="gh-handle">{heroEntry!.data.subtitle ?? '努力学习，好好吃饭の二次元~'}</p>
 
         <!-- Follow button -->
         <button class="gh-btn-follow" type="button">
@@ -262,7 +314,7 @@ const achCol3 = sortedAchievements.filter((_, i) => i % 3 === 2);
             <span class="gh-card-title">
               <span class="gh-muted">{heroEntry!.data.title}</span>
               <span class="gh-muted mx-1">/</span>
-              <strong class="gh-text">README</strong>
+              <strong class="gh-text">Experience</strong>
               <span class="gh-muted">.md</span>
             </span>
             <span class="gh-pin-badge ml-auto">Pinned</span>
@@ -683,54 +735,6 @@ const achCol3 = sortedAchievements.filter((_, i) => i % 3 === 2);
     min-width: 20px;
   }
   .gh-hint { font-size: 13px; color: var(--gh-link); cursor: default; }
-
-  /* ── BlogAvatarGrid: override card colors ───────────────────────── */
-  .gh-blog-wrap :global([class*="rounded-xl"]) {
-    border-color: var(--gh-border) !important;
-    background: var(--gh-surface) !important;
-  }
-  .gh-blog-wrap :global([class*="rounded-xl"]:hover) {
-    border-color: var(--gh-accent) !important;
-    box-shadow: 0 0 0 1px rgba(212,168,83,.4), 0 8px 24px rgba(0,0,0,.35) !important;
-  }
-
-  /* ── Achievement grid ───────────────────────────────────────────── */
-  .gh-ach-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(230px, 1fr));
-    gap: 8px;
-  }
-  .gh-ach-card {
-    display: flex;
-    align-items: center;
-    gap: 12px;
-    padding: 12px 14px;
-    background: var(--gh-surface);
-    border: 1px solid var(--gh-border);
-    border-radius: 6px;
-    cursor: default;
-    transition: border-color .15s, box-shadow .15s;
-  }
-  .gh-ach-card:hover {
-    border-color: var(--gh-accent);
-    box-shadow: 0 0 0 1px rgba(212,168,83,.3), 0 4px 12px rgba(0,0,0,.3);
-  }
-  .gh-ach-card-icon {
-    width: 44px;
-    height: 44px;
-    border-radius: 50%;
-    background: linear-gradient(135deg, rgba(212,168,83,.28), rgba(212,168,83,.07));
-    border: 1px solid rgba(212,168,83,.4);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 1.375rem;
-    flex-shrink: 0;
-  }
-  .gh-ach-card-body { display: flex; flex-direction: column; min-width: 0; }
-  .gh-ach-card-cat { font-size: 11px; color: var(--gh-muted); text-transform: uppercase; letter-spacing: .06em; }
-  .gh-ach-card-title { font-size: 14px; font-weight: 600; color: var(--gh-text); margin: 2px 0; }
-  .gh-ach-card-date { font-size: 12px; color: var(--gh-muted); }
 
   /* ═══ Footer ═══════════════════════════════════════════════════════ */
   .gh-footer { border-top: 1px solid var(--gh-border); background: var(--gh-bg); margin-top: 40px; }

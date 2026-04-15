@@ -1,3 +1,33 @@
+/**
+ * src/components/DraggableCharacter.tsx
+ * ──────────────────────────────────────────────────────────────────────────────
+ * 可拖拽角色卡片组件 —— 最复杂的 React 组件，核心是 Canvas 文字绕排算法。
+ *
+ * 功能：
+ *   1. 在指定宽度容器内，以 Canvas 测量字符宽度并执行自动换行
+ *   2. 文字绕排角色立绘：根据角色图片的碰撞箱偏移量，计算每行可用槽位
+ *   3. 角色图片可拖拽（Framer Motion drag + 弹性约束）
+ *   4. 图片拖动时，文字布局实时重新计算（reflow）
+ *   5. 响应容器尺寸变化（ResizeObserver），自适应宽度
+ *
+ * 数据来源：
+ *   props.imageSrc     → heroEntry.data.characterImage（src/content/site-info/hero.md）
+ *   props.imageAlt     → heroEntry.data.characterAlt（同上）
+ *   props.markdownHtml → marked.parse(heroEntry.body)（由 index.astro 提前渲染）
+ *   props.title        → heroEntry.data.title（同上）
+ *
+ * 消费方：src/pages/index.astro（第 1 块内容区，client:load 激活）
+ *
+ * 核心算法（buildGlyphProjection）：
+ *   1. 将 HTML 转纯文本 → 分字素（grapheme）→ 通过 @chenglou/pretext 分段
+ *   2. 逐行：调用 computeLineSlots() 计算碰撞箱遮挡后的可用区域
+ *   3. 在每行槽位内用 layoutNextLineRange / materializeLineRange 排布字符
+ *   4. 返回 PositionedGlyph[] 数组，由 Canvas drawText 按坐标绘制
+ *
+ * 碰撞箱（HITBOX_OFFSET_*）：
+ *   相对图片物理边缘的偏移量，是文字绕排和拖拽约束的唯一事实来源。
+ *   调整这4个常量可以修改文字与图片的间距。
+ */
 import React, {
   useCallback,
   useEffect,
@@ -25,7 +55,7 @@ interface DraggableCharacterProps {
 const CHARACTER_WIDTH = 250 * 1.85; // 角色图片宽度
 const CHARACTER_HEIGHT = 360 * 1; // 角色图片高度
 const BASE_LEFT = -70; // 图片初始左偏移
-const BASE_TOP =0; // 图片初始上偏移
+const BASE_TOP = 0; // 图片初始上偏移
 const BODY_FONT_SIZE = 20; // 正文字体大小（像素）
 const BODY_LINE_HEIGHT = 34; // 正文行高（像素）
 const BODY_FONT = `${BODY_FONT_SIZE}px Georgia, "Times New Roman", serif`; // 字体描述

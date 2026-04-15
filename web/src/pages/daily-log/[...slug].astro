@@ -1,7 +1,34 @@
 ---
+/**
+ * src/pages/daily-log/[...slug].astro
+ * ──────────────────────────────────────────────────────────────────────────────
+ * 每日日志详情页（动态路由）。
+ *
+ * 路由策略：
+ *   getStaticPaths() 在构建时调用，遍历 daily-log 集合的全部条目，
+ *   为每篇日志生成一个对应路径 /daily-log/<slug>（rest 参数支持多级 slug）。
+ *   slug = 文件名（不含 .md 扩展名），如 "2026-04-15" → /daily-log/2026-04-15
+ *
+ * 数据来源：
+ *   src/content/daily-log/*.md（每文件一篇日志）
+ *   字段（来自 src/content/config.ts dailyLogCollection schema）：
+ *     - title  → 文章大标题
+ *     - date   → 日期（Date 对象，在此格式化为中文展示）
+ *     - tags   → 标签数组（以 pill 形式展示）
+ *     - body   → Markdown 正文（通过 entry.render() 编译为 Astro <Content /> 组件）
+ *
+ * 样式：
+ *   正文使用 .prose-daily 类名，定义于此文件的 <style is:global> 块中。
+ *   is:global 使样式穿透 Astro 的组件作用域，能影响 <Content /> 渲染出的 HTML 标签。
+ *
+ * 返回首页链接：指向 /#contribution（首页贡献热力图锚点）
+ */
 import Layout from '../../layouts/Layout.astro';
 import { getCollection } from 'astro:content';
 
+// ── 静态路径生成 ────────────────────────────────────────────────────────────────
+// 构建时执行：读取所有日志条目 → 每条生成一个 { params, props } 对象
+// params.slug 会匹配 URL 中的 [...slug] 段
 export async function getStaticPaths() {
   const logs = await getCollection('daily-log');
   return logs.map((entry) => ({
@@ -10,9 +37,13 @@ export async function getStaticPaths() {
   }));
 }
 
+// ── 当前页数据 ──────────────────────────────────────────────────────────────────
+// entry 来自 getStaticPaths 的 props，包含该篇日志的所有数据
 const { entry } = Astro.props;
+// render() 将 Markdown 正文编译为可直接使用的 Astro 组件（<Content />）
 const { Content } = await entry.render();
 
+// 将 Date 对象格式化为中文字符串（如 "2026年4月15日"）
 const dateStr = (entry.data.date as Date).toLocaleDateString('zh-CN', {
   year: 'numeric',
   month: 'long',
@@ -24,7 +55,7 @@ const dateStr = (entry.data.date as Date).toLocaleDateString('zh-CN', {
   <main class="min-h-screen py-20 px-4">
     <article class="max-w-2xl mx-auto">
 
-      {/* Back link */}
+      {/* 返回按钮：点击回到首页的贡献热力图区域 */}
       <a
         href="/#contribution"
         class="inline-flex items-center gap-2 text-sm text-genshin-light/50
@@ -37,7 +68,7 @@ const dateStr = (entry.data.date as Date).toLocaleDateString('zh-CN', {
         返回首页
       </a>
 
-      {/* Article header */}
+      {/* 文章头部：日期 + 标签 + 标题 */}
       <div class="glass-panel mb-8">
         <div class="flex items-center gap-3 mb-3">
           <span class="text-xs text-genshin-light/40 tracking-widest">{dateStr}</span>
@@ -45,7 +76,6 @@ const dateStr = (entry.data.date as Date).toLocaleDateString('zh-CN', {
             <div class="flex gap-2 flex-wrap">
               {entry.data.tags.map((tag: string) => (
                 <span
-                  key={tag}
                   class="text-xs px-2 py-0.5 rounded-full
                          border border-genshin-gold/30
                          text-genshin-gold/70 tracking-wider"
@@ -61,7 +91,7 @@ const dateStr = (entry.data.date as Date).toLocaleDateString('zh-CN', {
         </h1>
       </div>
 
-      {/* Markdown content */}
+      {/* Markdown 正文渲染区（样式由下方 .prose-daily 定义） */}
       <div class="glass-card prose-daily">
         <Content />
       </div>
@@ -71,7 +101,11 @@ const dateStr = (entry.data.date as Date).toLocaleDateString('zh-CN', {
 </Layout>
 
 <style is:global>
-  /* Prose styles for daily-log Markdown */
+  /*
+   * .prose-daily — 日志 Markdown 正文样式
+   * 作用域：is:global 使其穿透 Astro 组件边界，影响 <Content /> 渲染的所有 HTML 标签
+   * 颜色：使用原神配色（genshin-light/gold）的 rgba 值，保持与全局 design token 一致
+   */
   .prose-daily {
     color: rgba(245, 241, 232, 0.85);
     line-height: 1.75;

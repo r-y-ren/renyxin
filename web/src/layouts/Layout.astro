@@ -1,11 +1,31 @@
 ---
+/**
+ * src/layouts/Layout.astro
+ * ──────────────────────────────────────────────────────────────────────────────
+ * 全站公共页面外壳（Shell Layout）。
+ * 所有页面均通过 <Layout> 包裹，统一提供：
+ *   1. HTML 文档结构（head meta / 字符集 / favicon / title）
+ *   2. 全局样式注入（src/styles/globals.css）
+ *   3. 可选的星空粒子背景（starfield-bg，通过 showStarfield prop 控制）
+ *   4. z-index 层叠上下文（星空在 fixed inset-0，内容在 relative z-10）
+ *
+ * 消费方：
+ *   src/pages/index.astro              → showStarfield={false}（关闭星空，使用自己的背景）
+ *   src/pages/daily-log/[...slug].astro → 默认 showStarfield=true
+ */
 import '../styles/globals.css';
 
+/**
+ * 组件 Props 接口
+ * @prop title       - 页面 <title> 标签内容，搜索引擎和标签栏展示
+ * @prop showStarfield - 是否渲染星空粒子背景层，默认为 true
+ */
 interface Props {
   title: string;
   showStarfield?: boolean;
 }
 
+// 解构 props，showStarfield 默认启用
 const { title, showStarfield = true } = Astro.props;
 ---
 
@@ -14,14 +34,17 @@ const { title, showStarfield = true } = Astro.props;
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width" />
+    <!-- favicon：SVG 格式，位于 public/favicon.svg -->
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <meta name="generator" content={Astro.generator} />
     <title>{title}</title>
   </head>
   <body class="bg-genshin-dark text-genshin-light">
+    {/* 星空背景层：通过 fixed inset-0 覆盖全屏，pointer-events-none 不拦截点击 */}
     {showStarfield && (
       <div class="fixed inset-0 starfield-bg pointer-events-none" aria-hidden="true"></div>
     )}
+    {/* 页面内容层：相对定位 z-10，确保在星空层之上 */}
     <div class="relative z-10">
       <slot />
     </div>
@@ -29,18 +52,14 @@ const { title, showStarfield = true } = Astro.props;
 </html>
 
 <style is:global>
+  /* 全局配色方案：强制暗色模式，防止系统亮色模式覆盖 */
   :root {
     color-scheme: dark;
   }
   
+  /* 全局字体与字间距基础设置 */
   html {
     font-family: system-ui, -apple-system, sans-serif;
     letter-spacing: 0.5px;
-  }
-  
-  /* 星空粒子动画 */
-  @keyframes twinkle {
-    0%, 100% { opacity: 0.3; }
-    50% { opacity: 1; }
   }
 </style>

@@ -1,53 +1,84 @@
+/**
+ * src/components/SkillConstellation.tsx
+ * ──────────────────────────────────────────────────────────────────────────────
+ * 技能星座图组件。
+ *
+ * 功能：
+ *   1. 将技能按"类别（class）"分组，以星座图样式布局在 SVG 画布上
+ *   2. 每个类别为一个"星簇"，各簇按环形排布于画布中心周围
+ *   3. 连接线：中心 → 星簇（backbone），星簇 → 各技能星（spoke）
+ *   4. 支持画布拖拽平移（Framer Motion drag，带弹性边界）
+ *   5. 悬浮技能星 → 显示 tooltip（HTML，跟随 pan 偏移调整位置）
+ *   6. 点击技能星 → 展开技能详情弹窗
+ *   7. 第二部分：技能全览（用 DraggableCard 网格展示所有技能，按熟练度降序）
+ *
+ * 数据来源：
+ *   props.skills → index.astro 中的 skillsData 数组
+ *                  来源：src/content/skills/*.md（每文件一项技能）
+ *                  字段：name / proficiency / class / description
+ *
+ * 消费方：src/pages/index.astro（第 4 块内容区，client:load 激活）
+ *
+ * 核心算法：computeClassLayout()
+ *   - 按 class 分组，各组中心均匀分布在半径 R_cluster 的圆上
+ *   - 组内成员均匀分布在半径 R_star 的更小圆上
+ *   - 每个星的 labelDx/labelDy 为指向组外的单位向量 × 16，用于标签偏移
+ */
 import React, { useMemo, useRef, useState } from "react";
 import { motion, AnimatePresence, useMotionValue } from "framer-motion";
 import DraggableCard from "./DraggableCard";
 
-// ─── Types ────────────────────────────────────────────────────────────────────
+// ─── 类型定义 ─────────────────────────────────────────────────────────────────
 
+/** 技能输入（来自 index.astro 映射的 skillsData 数组） */
 interface SkillInput {
-  name: string;
-  proficiency: number;
-  class: string;
-  description?: string;
+  name: string; // 技能名称（唯一 key）
+  proficiency: number; // 熟练度 0-100
+  class: string; // 技能类别（用于分组和着色）
+  description?: string; // 简短描述（可选，显示在 tooltip/弹窗中）
 }
 
+/** 最终布局结果（已计算坐标）*/
 interface ComputedSkill extends SkillInput {
-  x: number;
-  y: number;
-  classIndex: number;
-  /** Outward unit-vector * 16, for label offset direction */
+  x: number; // 画布 X 坐标
+  y: number; // 画布 Y 坐标
+  classIndex: number; // 所属星簇的索引（决定颜色）
+  /** 向外偏移向量（模为 16），用于标签位置偏移 */
   labelDx: number;
   labelDy: number;
 }
 
+/** 星簇中心信息 */
 interface ClusterCenter {
-  x: number;
-  y: number;
-  className: string;
-  classIndex: number;
+  x: number; // 星簇中心 X
+  y: number; // 星簇中心 Y
+  className: string; // 类别名称（如 "frontend"）
+  classIndex: number; // 颜色索引
 }
 
+/** 组件 Props */
 interface SkillConstellationProps {
-  skills: SkillInput[];
-  width?: number;
-  height?: number;
+  skills: SkillInput[]; // 技能数组（来自 index.astro）
+  width?: number; // SVG 视口宽度（默认 1000）
+  height?: number; // SVG 视口高度（默认 620）
 }
 
-// ─── Constants ────────────────────────────────────────────────────────────────
+// ─── 颜色表 ───────────────────────────────────────────────────────────────────
+// 每个星簇按 classIndex % 7 取色，颜色顺序：金/青/紫蓝/绿/橙/粉紫/翠绿
 
 const CLASS_COLORS = [
-  "#d4af70",
-  "#76c8df",
-  "#8ba5ff",
-  "#8fd9b6",
-  "#e9a46f",
-  "#d89ad7",
-  "#7bc9a9",
+  "#d4af70", // 金
+  "#76c8df", // 青
+  "#8ba5ff", // 紫蓝
+  "#8fd9b6", // 绿
+  "#e9a46f", // 橙
+  "#d89ad7", // 粉紫
+  "#7bc9a9", // 翠绿
 ];
 
-// ─── Helpers ──────────────────────────────────────────────────────────────────
+// ─── 工具函数 ─────────────────────────────────────────────────────────────────
 
-/** Genshin-style four-point star (diamond with narrow waist), centered at 0,0 */
+/** 生成原神风四角星路径（菱形 + 细腰），以 (0,0) 为中心，外接圆半径 R */
 function getFourPointStarPath(R: number): string {
   const r = +(R * 0.2).toFixed(2);
   const R_ = +R.toFixed(2);
@@ -63,12 +94,19 @@ function getFourPointStarPath(R: number): string {
   );
 }
 
+/** 根据熟练度计算四角星大小（最小 7px，最大 22px） */
 function getStarSize(proficiency: number): number {
   return Math.max(7, (proficiency / 100) * 15);
 }
 
-// ─── Layout ───────────────────────────────────────────────────────────────────
-
+// ─── 布局算法 ─────────────────────────────────────────────────────────────────
+/**
+ * 计算所有技能的画布坐标：
+ *  1. 按 class 分组
+ *  2. 各星簇中心均匀分布在半径 R_cluster 的圆上（-π/2 起始，顺时针）
+ *  3. 各星在本簇内均匀分布在更小的 R_star 圆上
+ *  4. labelDx/Dy 为向外的单位向量 × 16，让技能名称标签向外偏移
+ */
 function computeClassLayout(
   items: SkillInput[],
   canvasW: number,
@@ -140,7 +178,7 @@ function computeClassLayout(
   return { skills: computedSkills, clusters };
 }
 
-// ─── Component ────────────────────────────────────────────────────────────────
+// ─── 主组件 ───────────────────────────────────────────────────────────────────
 
 export default function SkillConstellation({
   skills = [],
@@ -148,16 +186,19 @@ export default function SkillConstellation({
   height = 620,
 }: SkillConstellationProps) {
   const svgRef = useRef<SVGSVGElement | null>(null);
+  // 当前选中/悬浮的技能名称（null 表示无）
   const [selectedName, setSelectedName] = useState<string | null>(null);
   const [hoveredName, setHoveredName] = useState<string | null>(null);
+  // 画布是否正在被拖拽（影响 cursor 样式）
   const [isDraggingCanvas, setIsDraggingCanvas] = useState(false);
 
-  // Pan canvas motion values (CSS pixels) — read by framer-motion drag
+  // 平移量 motion values（由 framer-motion drag 驱动，tooltip 也读取此值跟随偏移）
   const panX = useMotionValue(0);
   const panY = useMotionValue(0);
-  const MAX_PAN_X = 400;
-  const MAX_PAN_Y = 260;
+  const MAX_PAN_X = 400; // 水平最大平移量（px）
+  const MAX_PAN_Y = 260; // 垂直最大平移量（px）
 
+  // 数据清洗：过滤空名称 + 去重（同 class-name 组合），防止渲染异常
   const safeSkills: SkillInput[] = useMemo(() => {
     const raw = Array.isArray(skills)
       ? skills
@@ -177,11 +218,13 @@ export default function SkillConstellation({
     });
   }, [skills]);
 
+  // 调用布局算法，计算所有技能和星簇的坐标
   const { skills: layoutSkills, clusters } = useMemo(
     () => computeClassLayout(safeSkills, width, height),
     [safeSkills, width, height],
   );
 
+  // 名称 → ComputedSkill 的映射，用于 O(1) 查找当前选中/悬浮技能
   const skillMap = useMemo(() => {
     const map = new Map<string, ComputedSkill>();
     for (const skill of layoutSkills) map.set(skill.name, skill);
@@ -196,12 +239,14 @@ export default function SkillConstellation({
     : null;
   const hoveredSkill = hoveredName ? (skillMap.get(hoveredName) ?? null) : null;
 
+  // 按熟练度降序排列，用于第二部分"技能全览"网格
   const sortedSkills = useMemo(
     () => [...layoutSkills].sort((a, b) => b.proficiency - a.proficiency),
     [layoutSkills],
   );
 
   if (safeSkills.length === 0) {
+    // 无技能数据时显示占位文字
     return (
       <div className="relative w-full min-h-[300px] bg-genshin-dark rounded-3xl border border-genshin-gold/20 p-8 flex items-center justify-center">
         <p className="text-genshin-light/60 text-xl">还没有添加任何技能</p>
@@ -211,7 +256,7 @@ export default function SkillConstellation({
 
   return (
     <div className="w-full space-y-20">
-      {/* ── Part 1: SVG Constellation ─────────────────────────────── */}
+      {/* ── 第一部分：SVG 星座画布 ──────────────────────────────── */}
       <div className="relative w-full bg-genshin-dark overflow-hidden rounded-3xl border border-genshin-gold/15">
         <div className="absolute inset-0 starfield-bg pointer-events-none" />
 
@@ -703,7 +748,7 @@ export default function SkillConstellation({
         </AnimatePresence>
       </div>
 
-      {/* ── Part 2: Skill Overview ─────────────────────────────────── */}
+      {/* ── 第二部分：技能全览网格（DraggableCard）─────────────── */}
       <div>
         <div className="text-center mb-10">
           <h3
