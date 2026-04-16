@@ -34,8 +34,12 @@ const { title, showStarfield = true } = Astro.props;
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width" />
-    <!-- favicon：SVG 格式，位于 public/favicon.svg -->
-    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <!-- Favicons：多格式兼容，位于 public/Myfavicon/ -->
+    <link rel="icon" type="image/x-icon" href="/Myfavicon/favicon.ico" />
+    <link rel="icon" type="image/svg+xml" href="/Myfavicon/favicon.svg" />
+    <link rel="icon" type="image/png" sizes="96x96" href="/Myfavicon/favicon-96x96.png" />
+    <link rel="apple-touch-icon" href="/Myfavicon/apple-touch-icon.png" />
+    <link rel="manifest" href="/Myfavicon/site.webmanifest" />
     <meta name="generator" content={Astro.generator} />
     <title>{title}</title>
   </head>
@@ -48,8 +52,53 @@ const { title, showStarfield = true } = Astro.props;
     <div class="relative z-10">
       <slot />
     </div>
+
+    <!-- 背景音乐 -->
+    <audio id="bg-music" src="/music/music1.mp3" loop preload="auto"></audio>
+    <!-- 悬浮音乐控制按钮 -->
+    <button
+      id="music-btn"
+      aria-label="切换背景音乐"
+      title="点击播放背景音乐"
+      class="fixed bottom-6 right-6 z-50 w-12 h-12 rounded-full
+             bg-black/40 backdrop-blur-sm border border-genshin-gold/40
+             text-genshin-gold hover:bg-genshin-gold/20 hover:border-genshin-gold
+             transition-all duration-300 flex items-center justify-center text-xl
+             shadow-lg cursor-pointer select-none"
+    >
+      🔇
+    </button>
   </body>
 </html>
+
+<script>
+  const audio = document.getElementById('bg-music') as HTMLAudioElement;
+  const btn = document.getElementById('music-btn') as HTMLButtonElement;
+
+  function updateBtn() {
+    const muted = audio.paused;
+    btn.textContent = muted ? '🔇' : '🎵';
+    btn.title = muted ? '点击播放背景音乐' : '点击暂停背景音乐';
+  }
+
+  audio.addEventListener('play', updateBtn);
+  audio.addEventListener('pause', updateBtn);
+
+  btn.addEventListener('click', () => {
+    if (audio.paused) {
+      audio.play().catch(() => {});
+    } else {
+      audio.pause();
+    }
+  });
+
+  // 首次用户交互后尝试自动播放
+  document.addEventListener('click', () => {
+    if (audio.paused) {
+      audio.play().catch(() => {});
+    }
+  }, { once: true });
+</script>
 
 <style is:global>
   /* 全局配色方案：强制暗色模式，防止系统亮色模式覆盖 */

@@ -23,9 +23,13 @@
     color-scheme: dark;
   }
 
-  /* body 基础：深色背景 + 浅色文字 + 颜色过渡动画 */
+  /* body 基础：背景图（带深色回退）+ 浅色文字 + 颜色过渡动画 */
   body {
     @apply bg-genshin-dark text-genshin-light transition-colors;
+    background-image: url("/pictures/background.jpg");
+    background-size: cover;
+    background-position: center;
+    background-attachment: fixed;
   }
 
   /* ── 星空粒子背景容器 ──────────────────────────────────────────────────
@@ -34,9 +38,11 @@
    * 消费方：Layout.astro 中的 <div class="fixed inset-0 starfield-bg">
    *        SkillConstellation.tsx 中的 <div class="absolute inset-0 starfield-bg">
    */
+  /* starfield-bg 背景透明，让 body 背景图正常透视；
+     SkillConstellation 的外层容器自带 bg-genshin-dark，不受影响。*/
   .starfield-bg {
     position: relative;
-    background: #0c1220;
+    background: transparent;
     overflow: hidden;
   }
 
