@@ -2,7 +2,7 @@
 title: "Astro 和 React 的完美结合"
 date: "2024-04-10"
 tags: ["astro", "react", "web-development"]
-coverImage: "https://images.unsplash.com/photo-1633356122544-f134324ef6db?w=800"
+coverImage: "https://images.unsplash.com/photo-1601879637528-1ef3222cd832?q=80&w=1740&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D"
 ---
 
 这是我关于 Astro 框架的第一篇博客文章。我分享了如何在 Astro 中集成 React 组件，以及为什么这种组合非常强大。
