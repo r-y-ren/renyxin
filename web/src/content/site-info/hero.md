@@ -1,7 +1,7 @@
 ---
 title: 千心の鱼
 subtitle: 努力学习，好好吃饭の二次元~
-avatarImage: /pictures/pic(501).png
+avatarImage: /pictures/avatar.jpg
 characterImage: /pictures/胡桃.png
 avatarAlt: 头像
 ---

@@ -139,9 +139,15 @@ const achCol3 = sortedAchievements.filter((_, i) => i % 3 === 2);
   <header class="gh-header">
     <div class="gh-header-inner">
       <a class="gh-header-mark" href="/" aria-label="Homepage">
-<svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
-<path d="M22 12.2039V13.725C22 17.6258 22 19.5763 20.8284 20.7881C19.6569 22 17.7712 22 14 22H10C6.22876 22 4.34315 22 3.17157 20.7881C2 19.5763 2 17.6258 2 13.725V12.2039C2 9.91549 2 8.77128 2.5192 7.82274C3.0384 6.87421 3.98695 6.28551 5.88403 5.10813L7.88403 3.86687C9.88939 2.62229 10.8921 2 12 2C13.1079 2 14.1106 2.62229 16.116 3.86687L18.116 5.10812C20.0131 6.28551 20.9616 6.87421 21.4808 7.82274" stroke="#1C274C" stroke-width="1.5" stroke-linecap="round"/>
-<path d="M15 18H9" stroke="#1C274C" stroke-width="1.5" stroke-linecap="round"/>
+<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" width="32" height="32" viewBox="-1 0 19 19" version="1.1">
+    <title>home</title>
+    <g id="Page-1" stroke="none" stroke-width="1" fill="none" fill-rule="evenodd">
+        <g id="Dribbble-Light-Preview" transform="translate(-341.000000, -720.000000)" fill="#E0E0E0" opacity="0.7">
+            <g id="icons" transform="translate(56.000000, 160.000000)">
+                <path d="M299.875,576.21213 C299.875,576.76413 299.399,577.00013 298.8125,577.00013 L297.75,577.00013 C297.1635,577.00013 296.6875,576.76413 296.6875,576.21213 L296.6875,575.21213 C296.6875,574.10713 295.736562,573.00013 294.5625,573.00013 L292.4375,573.00013 C291.263438,573.00013 290.3125,574.10713 290.3125,575.21213 L290.3125,576.21213 C290.3125,576.76413 289.8365,577.00013 289.25,577.00013 L288.1875,577.00013 C287.601,577.00013 287.125,576.76413 287.125,576.21213 L287.125,568.14913 C287.125,568.01613 287.181312,567.88913 287.280125,567.79513 L292.738188,562.65913 C293.153625,562.26813 293.826188,562.26813 294.240563,562.65913 L299.719875,567.81513 C299.818688,567.90913 299.875,568.03613 299.875,568.16813 L299.875,576.21213 Z M302,567.62513 C302,567.36013 301.888438,567.10713 301.690812,566.91913 L294.998125,560.58913 C294.169375,559.80613 292.823188,559.80313 291.99125,560.58313 L285.312375,566.84813 C285.112625,567.03613 285,567.29013 285,567.55613 L285,577.21213 C285,578.31713 285.950938,579.00013 287.125,579.00013 L290.3125,579.00013 C291.486562,579.00013 292.4375,578.31713 292.4375,577.21213 L292.4375,576.21213 C292.4375,575.66013 292.9135,575.21213 293.5,575.21213 C294.0865,575.21213 294.5625,575.66013 294.5625,576.21213 L294.5625,577.21213 C294.5625,578.31713 295.513438,579.00013 296.6875,579.00013 L299.875,579.00013 C301.049062,579.00013 302,578.31713 302,577.21213 L302,567.62513 Z" id="home-[#1393]"></path>
+            </g>
+        </g>
+    </g>
 </svg>
       </a>
       <span class="gh-header-crumb">{heroEntry!.data.title}</span>
@@ -202,7 +208,7 @@ const achCol3 = sortedAchievements.filter((_, i) => i % 3 === 2);
         <!-- Avatar (角色头像，肖像比例相框) -->
         <!-- ??表达式，当左侧表达式的值是 null 或 undefined 时，返回右侧的默认值；否则返回左侧的值。 -->
          <!-- 没有给路径时，使用默认头像 -->
-        <div class="gh-avatar-wrap" >
+        <div class="gh-avatar-wrap"  >
           <img
             src={heroEntry!.data.avatarImage ?? heroEntry!.data.characterImage ?? '/pictures/avatar.jpg'}
             alt={heroEntry!.data.avatarAlt ?? '头像'}
@@ -457,7 +463,8 @@ const achCol3 = sortedAchievements.filter((_, i) => i % 3 === 2);
 
   /* ═══ Global resets ════════════════════════════════════════════════ */
   :global(html) { scroll-behavior: smooth; }
-  :global(body) { background: var(--gh-bg) !important; }
+  /* 只覆盖 background-color，不使用 background 简写，避免清除 globals.css 中的 background-image */
+  :global(body) { background-color: var(--gh-bg) !important; }
 
   /* Section scroll offset - account for sticky header + tabbar height */
   :global(#section-overview),
@@ -468,7 +475,7 @@ const achCol3 = sortedAchievements.filter((_, i) => i % 3 === 2);
   }
 
   .gh-root {
-    background: var(--gh-bg);
+    background: transparent;
     color: var(--gh-text);
     font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Noto Sans",
       Helvetica, Arial, sans-serif, "Apple Color Emoji";
@@ -487,8 +494,10 @@ const achCol3 = sortedAchievements.filter((_, i) => i % 3 === 2);
     position: sticky;
     top: 0;
     z-index: 100;
-    background: var(--gh-surface);
-    border-bottom: 1px solid var(--gh-border);
+    background: rgba(13, 17, 23, 0.55);
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+    border-bottom: 1px solid rgba(48, 54, 61, 0.6);
     height: 62px;
     display: flex;
     align-items: center;
@@ -517,7 +526,7 @@ const achCol3 = sortedAchievements.filter((_, i) => i % 3 === 2);
   .gh-header-link:hover { color: var(--gh-text); background: rgba(177,186,196,.12); }
 
   /* ═══ Tab bar ══════════════════════════════════════════════════════ */
-  .gh-tabbar { background: var(--gh-bg); border-bottom: 1px solid var(--gh-border); overflow-x: auto; }
+  .gh-tabbar { background: rgba(13, 17, 23, 0.45); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px); border-bottom: 1px solid rgba(48, 54, 61, 0.5); overflow-x: auto; }
   .gh-tabbar-inner {
     max-width: 1280px;
     margin: 0 auto;
@@ -574,16 +583,19 @@ const achCol3 = sortedAchievements.filter((_, i) => i % 3 === 2);
     overflow: hidden;
     border: 2px solid var(--gh-border);
     background: var(--gh-surface);
+    background-color: rgb(0,0,0,0);
   }
   .gh-avatar {
     width: 100%;
-    aspect-ratio: 3 / 4;
+    aspect-ratio: 1;
     object-fit: cover;
-    object-position: center top;
+    object-position: center;
     display: block;
+    transform: scale(1);
+    background-color: rgb(0,0,0,0);
     transition: transform .4s ease;
   }
-  .gh-avatar-wrap:hover .gh-avatar { transform: scale(1.03); }
+  .gh-avatar-wrap:hover .gh-avatar { transform: scale(1.03);}
 
   .gh-display-name { font-size: 1.25rem; font-weight: 600; color: var(--gh-text); margin: 0 0 2px; line-height: 1.25; }
   .gh-handle { font-size: .9375rem; font-weight: 300; color: var(--gh-muted); margin: 0 0 16px; line-height: 1.4; }
@@ -748,7 +760,7 @@ const achCol3 = sortedAchievements.filter((_, i) => i % 3 === 2);
   .gh-hint { font-size: 13px; color: var(--gh-link); cursor: default; }
 
   /* ═══ Footer ═══════════════════════════════════════════════════════ */
-  .gh-footer { border-top: 1px solid var(--gh-border); background: var(--gh-bg); margin-top: 40px; }
+  .gh-footer { border-top: 1px solid rgba(48, 54, 61, 0.5); background: rgba(13, 17, 23, 0.45); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px); margin-top: 40px; }
   .gh-footer-inner {
     max-width: 1280px;
     margin: 0 auto;
