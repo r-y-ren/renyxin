@@ -1,0 +1,38 @@
+name: 自动部署 Astro 到 VPS
+
+# 触发条件：当你把代码推送到 main 分支时
+on:
+  push:
+    branches: ["main"]
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest # 使用 GitHub 提供的免费 Ubuntu 服务器
+
+    steps:
+      # 1. 下载你的代码
+      - name: 拉取最新代码
+        uses: actions/checkout@v4
+
+      # 2. 安装 Node.js
+      - name: 设置 Node.js 环境
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      # 3. 安装依赖并编译网站
+      - name: 安装依赖与打包 (Build)
+        run: |
+          npm install
+          npm run build
+
+      # 4. 把打包好的 dist 文件夹传到你的 VPS 上
+      - name: 将成品推送到 VPS
+        uses: appleboy/scp-action@v0.1.7
+        with:
+          host: ${{ secrets.VPS_HOST }}
+          username: ${{ secrets.VPS_USERNAME }}
+          key: ${{ secrets.VPS_SSH_KEY }}
+          source: "dist/*"
+          target: "/var/www/mywebsite/"
+          strip_components: 1 # 剥离最外层的 dist 目录名，让里面的文件直接掉进 mywebsite/dist 目录
