@@ -507,23 +507,46 @@ export default function DraggableCharacter({
   }, [drawCanvas, x, y]);
 
   // ==================== 渲染 ====================
+
+  /** 渐变标题 span 的共用样式 */
+  const titleGradientStyle: React.CSSProperties = {
+    background:
+      "linear-gradient(90deg, #fbfaf6 0%, #ece5d8 36%, #d6b88e 68%, #b8936d 100%)",
+    WebkitBackgroundClip: "text",
+    WebkitTextFillColor: "transparent",
+    backgroundClip: "text",
+    filter: "drop-shadow(0 0 12px rgba(236, 229, 216, 0.18))",
+  };
+
   return (
-    <section className="rounded-2xl border border-genshin-gold/20 bg-genshin-dark/40 p-8 backdrop-blur-md shadow-[0_18px_60px_rgba(0,0,0,0.24)]">
+    <>
+      {/* ── 移动端简化版（< md / 768px）：图片 + HTML 正文，无 Canvas/拖拽 ── */}
+      <section className="block md:hidden rounded-2xl border border-genshin-gold/20 bg-genshin-dark/40 p-6 backdrop-blur-md shadow-[0_18px_60px_rgba(0,0,0,0.24)]">
+        <div className="text-center mb-5">
+          <h2 className="text-3xl font-bold">
+            <span style={titleGradientStyle}>{title}</span>
+          </h2>
+        </div>
+        <div className="flex justify-center mb-5">
+          <img
+            src={imageSrc}
+            alt={imageAlt}
+            className="w-44 h-auto object-contain drop-shadow-[0_10px_24px_rgba(0,0,0,0.4)]"
+            draggable={false}
+          />
+        </div>
+        <div
+          className="prose text-sm"
+          dangerouslySetInnerHTML={{ __html: markdownHtml }}
+        />
+      </section>
+
+      {/* ── 桌面端完整版（≥ md / 768px）：Canvas 文字绕排 + 可拖拽角色 ── */}
+      <section className="hidden md:block rounded-2xl border border-genshin-gold/20 bg-genshin-dark/40 p-8 backdrop-blur-md shadow-[0_18px_60px_rgba(0,0,0,0.24)]">
       {/* 标题区域 */}
       <div className="text-center mb-8">
         <h2 className="text-5xl font-bold mb-4">
-          <span
-            style={{
-              background:
-                "linear-gradient(90deg, #fbfaf6 0%, #ece5d8 36%, #d6b88e 68%, #b8936d 100%)",
-              WebkitBackgroundClip: "text",
-              WebkitTextFillColor: "transparent",
-              backgroundClip: "text",
-              filter: "drop-shadow(0 0 12px rgba(236, 229, 216, 0.18))",
-            }}
-          >
-            {title}
-          </span>
+          <span style={titleGradientStyle}>{title}</span>
         </h2>
       </div>
 
@@ -598,6 +621,7 @@ export default function DraggableCharacter({
           </article>
         </div>
       </div>
-    </section>
+      </section>
+    </>
   );
 }

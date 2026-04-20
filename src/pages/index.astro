@@ -797,4 +797,62 @@ const achCol3 = sortedAchievements.filter((_, i) => i % 3 === 2);
   :global(.prose li::marker) { color: #d4a853; }
   :global(.prose blockquote) { @apply border-l-4 pl-4 italic; border-color: rgba(212,168,83,.4); color: rgba(230,237,243,.7); }
   :global(.prose-outlook p)  { color: rgba(230,237,243,.8); line-height: 1.8; font-size: 0.875rem; }
+
+  /* ═══ Responsive ══════════════════════════════════════════════════════ */
+
+  /* ── Tablet (768px – 1023px) ──────────────────────────────────────── */
+  @media (min-width: 768px) and (max-width: 1023px) {
+    .gh-header-inner { padding: 0 20px; }
+    .gh-tabbar-inner { padding: 0 16px; }
+    .gh-body         { padding: 20px; }
+    .gh-layout       { grid-template-columns: 220px 1fr; }
+    .gh-footer-inner { padding: 14px 20px; }
+  }
+
+  /* ── Mobile (≤ 767px) ─────────────────────────────────────────────── */
+  @media (max-width: 767px) {
+    /* Header */
+    .gh-header { height: auto; min-height: 48px; }
+    .gh-header-inner {
+      padding: 8px 12px;
+      flex-wrap: wrap;
+      gap: 8px;
+    }
+    .gh-header-crumb  { font-size: 12px; }
+    .gh-header-actions { flex-wrap: wrap; gap: 2px; }
+    .gh-header-link   { padding: 4px 6px; font-size: 12px; }
+
+    /* Tab bar */
+    .gh-tabbar-inner { padding: 0 4px; }
+    .gh-tab          { padding: 10px 10px; font-size: 13px; }
+
+    /* Body / layout */
+    .gh-body   { padding: 12px; }
+    .gh-layout {
+      grid-template-columns: 1fr;
+      gap: 16px;
+    }
+
+    /* Sidebar: unstick so it stacks normally above main content */
+    .gh-sidebar { position: static; }
+
+    /* Fix centered-flex overflow scroll (SkillConstellation) */
+    .gh-card-body { justify-content: flex-start; }
+
+    /* Footer */
+    .gh-footer-inner {
+      padding: 12px;
+      flex-direction: column;
+      align-items: flex-start;
+      gap: 8px;
+    }
+
+    /* Adjust section scroll offset for shorter header + tabbar */
+    :global(#section-overview),
+    :global(#section-blog),
+    :global(#section-skills),
+    :global(#section-achievements) {
+      scroll-margin-top: 100px;
+    }
+  }
 </style>
