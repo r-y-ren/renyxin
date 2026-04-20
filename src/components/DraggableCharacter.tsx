@@ -546,7 +546,18 @@ export default function DraggableCharacter({
       {/* 标题区域 */}
       <div className="text-center mb-8">
         <h2 className="text-5xl font-bold mb-4">
-          <span style={titleGradientStyle}>{title}</span>
+          <span
+            style={{
+              background:
+                "linear-gradient(90deg, #fbfaf6 0%, #ece5d8 36%, #d6b88e 68%, #b8936d 100%)",
+              WebkitBackgroundClip: "text",
+              WebkitTextFillColor: "transparent",
+              backgroundClip: "text",
+              filter: "drop-shadow(0 0 12px rgba(236, 229, 216, 0.18))",
+            }}
+          >
+            {title}
+          </span>
         </h2>
       </div>
 
