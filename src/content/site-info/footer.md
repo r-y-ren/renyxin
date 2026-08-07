@@ -5,7 +5,7 @@ links:
   - label: GitHub
     href: "https://github.com/r-y-ren"
   - label: Email
-    href: "https://r.y.renxin@gmail.com"
+    href: "https://r.y.renyxin@gmail.com"
   - label: QQ / 社交媒体
     href: "https://qm.qq.com/q/f6PB1YWqLC"
 ---
