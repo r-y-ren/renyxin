@@ -33,6 +33,6 @@ jobs:
           host: ${{ secrets.VPS_HOST }}
           username: ${{ secrets.VPS_USERNAME }}
           key: ${{ secrets.VPS_SSH_KEY }}
-          source: "dist/*"
-          target: "/var/www/mywebsite/"
-          strip_components: 1 # 剥离最外层的 dist 目录名，让里面的文件直接掉进 mywebsite/dist 目录
+          source: "dist" # 选定整个 dist 目录（去掉 /*）
+          target: "/var/www/mywebsite" # 目标父目录（去掉最后多余的斜杠）
+          # 去掉了 strip_components
