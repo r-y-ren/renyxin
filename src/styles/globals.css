@@ -1,166 +1,1139 @@
 /**
  * src/styles/globals.css
  * ──────────────────────────────────────────────────────────────────────────────
- * 项目全局样式入口。由 src/layouts/Layout.astro 统一注入到每个页面。
- * 结构：
- *   @layer base      — HTML 基础重置与全局元素样式（body、星空背景）
- *   @layer components — 可复用 UI 原子类（毛玻璃系列、原神风格类）
- *   @layer utilities  — 补充动画关键帧（twinkle）
- *
- * 主题颜色由 tailwind.config.mjs 中的 theme.extend.colors 定义：
- *   genshin-dark   → 深色背景 #0d1117
- *   genshin-light  → 主要文字 #ece5d8
- *   genshin-gold   → 主题金色 #d4af70
- *   genshin-accent → 暖金色   #b8936d
+ * 星穹档案 · 全局设计系统
+ * 主题：深空观测站 —— 三层动态背景（Canvas 星野 / 极光光晕 / 指针光斑）
+ *       + 玻璃质感卡片 + 鎏金/星青双色 + 中文衬线展示字体
+ * 全部设计令牌使用 CSS 变量（:root），组件内联色仅作点缀。
  */
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
 @layer base {
-  /* 强制暗色配色方案，防止系统浅色模式渗透 */
   :root {
     color-scheme: dark;
+    /* ── 色板 ── */
+    --bg-0: #060a14;
+    --bg-1: #0a1122;
+    --bg-2: #101a32;
+    --surface: rgba(151, 168, 200, 0.05);
+    --surface-strong: rgba(151, 168, 200, 0.10);
+    --border: rgba(151, 168, 200, 0.16);
+    --border-soft: rgba(151, 168, 200, 0.10);
+    --text: #edf1f9;
+    --text-dim: #a9b3c8;
+    --muted: #7b86a0;
+    --gold: #e6c98f;
+    --gold-soft: rgba(230, 201, 143, 0.55);
+    --gold-deep: #b8936d;
+    --cyan: #8adbe8;
+    --violet: #9d8cf8;
+    /* ── 字体 ── */
+    --font-display: "Noto Serif SC", "Source Han Serif SC", "Songti SC",
+      STSong, SimSun, Georgia, "Times New Roman", serif;
+    --font-body: system-ui, -apple-system, "Segoe UI", "PingFang SC",
+      "Hiragino Sans GB", "Microsoft YaHei", sans-serif;
+    /* ── 动效 ── */
+    --ease-out: cubic-bezier(0.22, 1, 0.36, 1);
   }
 
-  /* body 基础：背景图（带深色回退）+ 浅色文字 + 颜色过渡动画 */
+  html {
+    scroll-behavior: smooth;
+  }
+  html.has-custom-cursor,
+  html.has-custom-cursor * {
+    cursor: none !important;
+  }
+
   body {
-    @apply bg-genshin-dark text-genshin-light transition-colors;
-    background-image: url('/pictures/nasa-Q1p7bh3SHj8-unsplash.jpg');
-    background-size: cover;
-    background-position: center;
-    background-attachment: fixed;
+    background-color: var(--bg-0);
+    color: var(--text);
+    font-family: var(--font-body);
+    letter-spacing: 0.02em;
+    overflow-x: hidden;
+    -webkit-font-smoothing: antialiased;
   }
 
-  /* ── 星空粒子背景容器 ──────────────────────────────────────────────────
-   * 通过 ::before 伪元素在容器内绘制多个小白点，
-   * 配合 background-size: 200x200 平铺，形成满天星斗效果。
-   * 消费方：Layout.astro 中的 <div class="fixed inset-0 starfield-bg">
-   *        SkillConstellation.tsx 中的 <div class="absolute inset-0 starfield-bg">
-   */
-  /* starfield-bg 背景透明，让 body 背景图正常透视；
-     SkillConstellation 的外层容器自带 bg-genshin-dark，不受影响。*/
-  .starfield-bg {
-    position: relative;
-    background: transparent;
-    overflow: hidden;
+  ::selection {
+    background: rgba(230, 201, 143, 0.32);
+    color: #fff;
   }
 
-  .starfield-bg::before {
-    content: "";
-    position: absolute;
-    width: 100%;
-    height: 100%;
-    /* 7 个不同尺寸/透明度的径向渐变点，模拟星星 */
-    background-image:
-      radial-gradient(
-        1.5px 1.5px at 20px 30px,
-        rgba(255, 255, 255, 0.8),
-        rgba(255, 255, 255, 0)
-      ),
-      radial-gradient(
-        1px 1px at 60px 70px,
-        rgba(255, 255, 255, 0.6),
-        rgba(255, 255, 255, 0)
-      ),
-      radial-gradient(
-        1.5px 1.5px at 50px 50px,
-        rgba(255, 255, 255, 0.7),
-        rgba(255, 255, 255, 0)
-      ),
-      radial-gradient(
-        1px 1px at 130px 80px,
-        rgba(255, 255, 255, 0.5),
-        rgba(255, 255, 255, 0)
-      ),
-      radial-gradient(
-        1.5px 1.5px at 90px 10px,
-        rgba(255, 255, 255, 0.8),
-        rgba(255, 255, 255, 0)
-      ),
-      radial-gradient(
-        1px 1px at 140px 140px,
-        rgba(255, 255, 255, 0.6),
-        rgba(255, 255, 255, 0)
-      ),
-      radial-gradient(
-        1.5px 1.5px at 10px 90px,
-        rgba(255, 255, 255, 0.7),
-        rgba(255, 255, 255, 0)
-      );
-    /* 200×200 的瓦片重复平铺 */
-    background-size: 200px 200px;
-    /* 每个渐变点的起始偏移，错位排列避免规律感 */
-    background-position:
-      0 0,
-      40px 60px,
-      100px 0,
-      30px 100px,
-      80px 40px,
-      0 120px,
-      120px 80px;
-    /* twinkle 动画：opacity 0.3→1→0.3，周期 3s */
-    animation: twinkle 3s ease-in-out infinite;
-    z-index: 0;
+  ::-webkit-scrollbar {
+    width: 10px;
+    height: 10px;
+  }
+  ::-webkit-scrollbar-track {
+    background: var(--bg-0);
+  }
+  ::-webkit-scrollbar-thumb {
+    background: #1c2742;
+    border-radius: 8px;
+    border: 2px solid var(--bg-0);
+  }
+  ::-webkit-scrollbar-thumb:hover {
+    background: #2a3a61;
+  }
+
+  a {
+    color: inherit;
+  }
+  img {
+    user-select: none;
   }
 }
 
-@layer components {
-  /* ── 毛玻璃基础类（glassmorphism）──────────────────────────────────────
-   * 所有毛玻璃变体的基类，定义 backdrop-blur + 半透明背景 + 金色描边。
-   * 参数由 tailwind.config.mjs 中的 backdropBlur.genshin 等扩展定义。
-   */
-  .glassmorphism {
-    @apply relative backdrop-blur-genshin bg-white/10 dark:bg-black/20 border border-genshin-gold/30;
-  }
+/* ══════════════════════════════════════════════════════════════════════════
+   背景层（Layout.astro 渲染）
+   ══════════════════════════════════════════════════════════════════════════ */
 
-  /* ── 毛玻璃卡片（glass-card）──────────────────────────────────────────
-   * 标准卡片：白色/金色描边 + 圆角 + 内边距 + 悬停发光。
-   * 消费方：DraggableCard.tsx、DraggableOutlook.tsx、daily-log/[...slug].astro
-   */
-  .glass-card {
-    @apply glassmorphism rounded-lg p-6 shadow-lg hover:shadow-genshin-glow transition-all duration-300;
-  }
+/* ── 极光光晕：三团缓慢漂移的模糊色块 ── */
+.aurora {
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  overflow: hidden;
+  pointer-events: none;
+}
+.aurora i {
+  position: absolute;
+  border-radius: 50%;
+  filter: blur(90px);
+  will-change: transform;
+}
+.aurora i:nth-child(1) {
+  width: 46vw;
+  height: 46vw;
+  left: -12vw;
+  top: -14vw;
+  background: radial-gradient(
+    circle at 35% 35%,
+    rgba(96, 110, 190, 0.34),
+    transparent 62%
+  );
+  animation: aurora-drift-1 26s var(--ease-out) infinite alternate;
+}
+.aurora i:nth-child(2) {
+  width: 38vw;
+  height: 38vw;
+  right: -10vw;
+  top: 6vh;
+  background: radial-gradient(
+    circle at 60% 40%,
+    rgba(230, 201, 143, 0.17),
+    transparent 60%
+  );
+  animation: aurora-drift-2 32s ease-in-out infinite alternate;
+}
+.aurora i:nth-child(3) {
+  width: 42vw;
+  height: 42vw;
+  left: 16vw;
+  bottom: -20vw;
+  background: radial-gradient(
+    circle at 50% 50%,
+    rgba(138, 219, 232, 0.13),
+    transparent 62%
+  );
+  animation: aurora-drift-3 38s ease-in-out infinite alternate;
+}
+@keyframes aurora-drift-1 {
+  from { transform: translate3d(0, 0, 0) scale(1); }
+  to   { transform: translate3d(9vw, 7vh, 0) scale(1.14); }
+}
+@keyframes aurora-drift-2 {
+  from { transform: translate3d(0, 0, 0) scale(1.05); }
+  to   { transform: translate3d(-7vw, 9vh, 0) scale(0.94); }
+}
+@keyframes aurora-drift-3 {
+  from { transform: translate3d(0, 0, 0) scale(0.96); }
+  to   { transform: translate3d(-8vw, -6vh, 0) scale(1.12); }
+}
 
-  /* ── 毛玻璃面板（glass-panel）────────────────────────────────────────
-   * 比 glass-card 更大的容器，用于弹窗或内容区面板，圆角更大 (rounded-2xl)。
-   * 消费方：ContributionGraph.tsx（热力图外框）、BlogGrid.tsx（展开弹窗）
-   *        daily-log/[...slug].astro（文章头部信息块）
-   */
-  .glass-panel {
-    @apply glassmorphism rounded-2xl p-8 shadow-genshin-glow backdrop-blur-genshin;
-  }
+/* ── Canvas 星野容器（Layout.astro 中由脚本绘制）── */
+.bg-stars {
+  position: fixed;
+  inset: 0;
+  z-index: 1;
+  pointer-events: none;
+}
 
-  /* ── 原神风格标题（genshin-title）────────────────────────────────────
-   * 白色、加粗、宽字间距，用于组件内部的主标题。
-   * 消费方：DraggableCard.tsx（博客卡片标题）、DraggableOutlook.tsx（展望标题）
-   */
-  .genshin-title {
-    @apply text-genshin-light font-bold tracking-wider;
-  }
+/* ── 指针光斑：跟随鼠标的低饱和暖光 ── */
+.cursor-glow {
+  position: fixed;
+  left: 0;
+  top: 0;
+  width: 640px;
+  height: 640px;
+  z-index: 3;
+  pointer-events: none;
+  transform: translate(-50%, -50%);
+  background: radial-gradient(
+    circle,
+    rgba(141, 152, 255, 0.075) 0%,
+    rgba(230, 201, 143, 0.05) 34%,
+    transparent 68%
+  );
+  will-change: transform;
+}
 
-  /* ── 渐变文字（text-genshin-gradient）────────────────────────────────
-   * 金色到暖金色的水平渐变裁剪文字效果，用于各处标题高亮。
-   * 消费方：BlogGrid.tsx（展开弹窗标题）、SkillConstellation.tsx（星座标题）
-   *        GenshinCard.tsx（已删除，保留备用）
-   */
-  .text-genshin-gradient {
-    @apply bg-gradient-to-r from-genshin-gold to-genshin-accent bg-clip-text text-transparent font-bold;
+/* ── 暗角 ── */
+.vignette {
+  position: fixed;
+  inset: 0;
+  z-index: 2;
+  pointer-events: none;
+  background: radial-gradient(
+    120% 90% at 50% 0%,
+    transparent 55%,
+    rgba(3, 5, 12, 0.55) 100%
+  );
+}
+
+/* ══════════════════════════════════════════════════════════════════════════
+   加载动画
+   ══════════════════════════════════════════════════════════════════════════ */
+.preloader {
+  position: fixed;
+  inset: 0;
+  z-index: 400;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: radial-gradient(120% 100% at 50% 30%, #0b1330 0%, var(--bg-0) 70%);
+  transition: opacity 0.7s ease, visibility 0.7s;
+}
+.preloader.is-done {
+  opacity: 0;
+  visibility: hidden;
+}
+.preloader-mono {
+  font-family: var(--font-display);
+  font-size: clamp(3rem, 9vw, 5.6rem);
+  font-weight: 800;
+  letter-spacing: 0.12em;
+  text-align: center;
+  background: linear-gradient(115deg, #f7efe0 10%, var(--gold) 45%, var(--cyan) 95%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  animation: preloader-breathe 2s ease-in-out infinite;
+}
+.preloader-dot {
+  font-style: normal;
+  color: var(--cyan);
+  -webkit-text-fill-color: var(--cyan);
+}
+.preloader-bar {
+  width: 170px;
+  height: 2px;
+  margin: 30px auto 0;
+  border-radius: 2px;
+  background: rgba(255, 255, 255, 0.08);
+  overflow: hidden;
+}
+.preloader-bar i {
+  display: block;
+  height: 100%;
+  width: 42%;
+  border-radius: 2px;
+  background: linear-gradient(90deg, transparent, var(--gold), transparent);
+  animation: preloader-slide 1.1s ease-in-out infinite;
+}
+@keyframes preloader-breathe {
+  0%, 100% { opacity: 0.65; filter: blur(0.4px); }
+  50%      { opacity: 1; filter: blur(0); }
+}
+@keyframes preloader-slide {
+  0%   { transform: translateX(-130%); }
+  100% { transform: translateX(420%); }
+}
+
+/* ══════════════════════════════════════════════════════════════════════════
+   页面骨架 & 进度条 & 光标
+   ══════════════════════════════════════════════════════════════════════════ */
+.page {
+  position: relative;
+  z-index: 10;
+  opacity: 0;
+  transition: opacity 0.6s ease 0.05s;
+}
+.page.is-ready {
+  opacity: 1;
+}
+
+#scroll-progress {
+  position: fixed;
+  top: 0;
+  left: 0;
+  height: 2px;
+  width: 0%;
+  z-index: 320;
+  background: linear-gradient(90deg, var(--gold-deep), var(--gold), var(--cyan));
+  box-shadow: 0 0 12px rgba(230, 201, 143, 0.55);
+}
+
+.cursor-dot,
+.cursor-ring {
+  position: fixed;
+  left: 0;
+  top: 0;
+  pointer-events: none;
+  border-radius: 50%;
+  z-index: 500;
+}
+.cursor-dot {
+  width: 6px;
+  height: 6px;
+  background: var(--gold);
+  box-shadow: 0 0 10px rgba(230, 201, 143, 0.9);
+}
+.cursor-ring {
+  width: 34px;
+  height: 34px;
+  border: 1.5px solid rgba(230, 201, 143, 0.55);
+  transition: width 0.25s var(--ease-out), height 0.25s var(--ease-out),
+    border-color 0.25s, background 0.25s;
+}
+.cursor-ring.is-active {
+  width: 58px;
+  height: 58px;
+  border-color: rgba(138, 219, 232, 0.85);
+  background: rgba(138, 219, 232, 0.07);
+}
+@media (pointer: coarse) {
+  .cursor-dot,
+  .cursor-ring,
+  .cursor-glow {
+    display: none;
   }
 }
 
-@layer utilities {
-  /* ── 星空闪烁动画关键帧 ──────────────────────────────────────────────
-   * 被 .starfield-bg::before 使用，驱动星星整体透明度呼吸。
-   * 周期 3s，由 layout.astro 引入的 globals.css 全局注入。
-   */
-  @keyframes twinkle {
-    0%,
-    100% {
-      opacity: 0.3;
-    }
-    50% {
-      opacity: 1;
-    }
+/* ══════════════════════════════════════════════════════════════════════════
+   顶部导航（Nav.tsx）
+   ══════════════════════════════════════════════════════════════════════════ */
+.site-nav {
+  position: fixed;
+  top: 14px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 90;
+}
+.site-nav-pill {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  padding: 6px;
+  border-radius: 999px;
+  background: rgba(10, 16, 32, 0.55);
+  border: 1px solid var(--border-soft);
+  backdrop-filter: blur(18px);
+  -webkit-backdrop-filter: blur(18px);
+  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.35);
+  transition: background 0.3s;
+}
+.site-nav.is-compact .site-nav-pill {
+  background: rgba(7, 11, 24, 0.82);
+}
+.site-nav-item {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 7px 15px;
+  border-radius: 999px;
+  font-size: 13px;
+  color: var(--text-dim);
+  text-decoration: none;
+  white-space: nowrap;
+  transition: color 0.25s, background 0.25s, box-shadow 0.25s;
+}
+.site-nav-item:hover {
+  color: var(--text);
+}
+.site-nav-item.is-active {
+  color: #191206;
+  background: linear-gradient(120deg, var(--gold), #f4e3bd);
+  font-weight: 600;
+  box-shadow: 0 4px 18px rgba(230, 201, 143, 0.35);
+}
+.site-nav-num {
+  font-size: 11px;
+  opacity: 0.65;
+  font-variant-numeric: tabular-nums;
+}
+
+/* 移动端汉堡按钮 */
+.nav-burger {
+  display: none;
+  position: fixed;
+  top: 14px;
+  right: 16px;
+  z-index: 95;
+  width: 46px;
+  height: 46px;
+  border-radius: 50%;
+  border: 1px solid var(--border-soft);
+  background: rgba(10, 16, 32, 0.6);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+  color: var(--gold);
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 8px 26px rgba(0, 0, 0, 0.35);
+}
+.nav-burger svg {
+  width: 20px;
+  height: 20px;
+}
+
+/* 移动端全屏菜单 */
+.site-menu {
+  position: fixed;
+  inset: 0;
+  z-index: 88;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  background: rgba(6, 10, 20, 0.92);
+  backdrop-filter: blur(24px);
+  -webkit-backdrop-filter: blur(24px);
+}
+.site-menu-link {
+  font-family: var(--font-display);
+  font-size: clamp(1.7rem, 7vw, 2.4rem);
+  font-weight: 700;
+  letter-spacing: 0.2em;
+  color: var(--text-dim);
+  text-decoration: none;
+  padding: 10px 24px;
+  transition: color 0.25s, transform 0.25s;
+}
+.site-menu-link:hover,
+.site-menu-link.is-active {
+  color: var(--gold);
+}
+.site-menu-num {
+  font-size: 0.45em;
+  color: var(--muted);
+  margin-left: 8px;
+  letter-spacing: 0.1em;
+}
+
+@media (max-width: 767px) {
+  .site-nav {
+    display: none;
+  }
+  .nav-burger {
+    display: flex;
+  }
+}
+
+/* ══════════════════════════════════════════════════════════════════════════
+   英雄区（Hero.tsx 配合使用）
+   ══════════════════════════════════════════════════════════════════════════ */
+.hero-kicker {
+  display: inline-flex;
+  align-items: center;
+  gap: 12px;
+  font-size: 12px;
+  letter-spacing: 0.4em;
+  color: var(--gold);
+  text-transform: uppercase;
+}
+.hero-kicker::before {
+  content: "";
+  width: 36px;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, var(--gold-soft));
+}
+.hero-title {
+  font-family: var(--font-display);
+  font-weight: 800;
+  letter-spacing: 0.05em;
+  line-height: 1.12;
+}
+.hero-title .grad {
+  background: linear-gradient(115deg, #f8f1e2 8%, var(--gold) 42%, var(--cyan) 92%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+.text-gold-grad {
+  background: linear-gradient(90deg, var(--gold), var(--gold-deep));
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+.text-genshin-gradient {
+  background: linear-gradient(90deg, var(--gold), var(--gold-deep));
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  font-weight: 700;
+}
+.hero-caret {
+  display: inline-block;
+  width: 2px;
+  height: 1em;
+  margin-left: 3px;
+  vertical-align: -0.12em;
+  background: var(--gold);
+  animation: caret-blink 0.9s steps(2) infinite;
+}
+@keyframes caret-blink {
+  50% { opacity: 0; }
+}
+
+/* 按钮 */
+.btn {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  padding: 13px 30px;
+  border-radius: 999px;
+  font-size: 15px;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-decoration: none;
+  transition: box-shadow 0.3s, background 0.3s, border-color 0.3s, color 0.3s,
+    transform 0.3s;
+  border: 1px solid transparent;
+}
+.btn-gold {
+  background: linear-gradient(120deg, var(--gold), var(--gold-deep));
+  color: #191206;
+  box-shadow: 0 10px 30px rgba(230, 201, 143, 0.28),
+    inset 0 1px 0 rgba(255, 255, 255, 0.35);
+}
+.btn-gold:hover {
+  box-shadow: 0 14px 44px rgba(230, 201, 143, 0.45),
+    inset 0 1px 0 rgba(255, 255, 255, 0.35);
+}
+.btn-ghost {
+  border-color: var(--border-strong, rgba(230, 201, 143, 0.35));
+  color: var(--gold);
+  background: rgba(230, 201, 143, 0.06);
+}
+.btn-ghost:hover {
+  background: rgba(230, 201, 143, 0.14);
+  box-shadow: 0 8px 26px rgba(230, 201, 143, 0.18);
+}
+
+/* 数据统计 */
+.stat-num {
+  font-family: var(--font-display);
+  font-size: clamp(1.6rem, 3vw, 2.1rem);
+  font-weight: 700;
+  line-height: 1.1;
+}
+.stat-label {
+  font-size: 12px;
+  color: var(--muted);
+  letter-spacing: 0.22em;
+  margin-top: 4px;
+}
+
+/* 立绘「传送门」 */
+.portal {
+  position: relative;
+  width: min(420px, 78vw);
+  aspect-ratio: 3 / 4.1;
+  margin: 0 auto;
+}
+.portal-glow {
+  position: absolute;
+  inset: 6%;
+  border-radius: 50%;
+  background: radial-gradient(
+    circle,
+    rgba(230, 201, 143, 0.3) 0%,
+    rgba(138, 219, 232, 0.14) 40%,
+    transparent 70%
+  );
+  filter: blur(28px);
+  animation: portal-breathe 5.2s ease-in-out infinite;
+}
+@keyframes portal-breathe {
+  0%, 100% { opacity: 0.65; transform: scale(0.97); }
+  50%      { opacity: 1; transform: scale(1.04); }
+}
+.portal-orbit {
+  position: absolute;
+  border-radius: 50%;
+  border: 1px dashed rgba(230, 201, 143, 0.28);
+  animation: portal-spin 26s linear infinite;
+}
+.portal-orbit.reverse {
+  animation-direction: reverse;
+  animation-duration: 36s;
+  border-color: rgba(138, 219, 232, 0.22);
+}
+.portal-orbit::after {
+  content: "";
+  position: absolute;
+  top: -3px;
+  left: 50%;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--gold);
+  box-shadow: 0 0 10px rgba(230, 201, 143, 0.9);
+}
+.portal-orbit.reverse::after {
+  background: var(--cyan);
+  box-shadow: 0 0 10px rgba(138, 219, 232, 0.9);
+  top: auto;
+  bottom: -3px;
+}
+@keyframes portal-spin {
+  to { transform: rotate(360deg); }
+}
+.portal-img {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+}
+.portal-img img {
+  height: 100%;
+  width: auto;
+  object-fit: contain;
+  filter: drop-shadow(0 24px 44px rgba(0, 0, 0, 0.5))
+    drop-shadow(0 0 34px rgba(230, 201, 143, 0.16));
+  animation: portal-float 5.5s ease-in-out infinite;
+  pointer-events: none;
+}
+@keyframes portal-float {
+  0%, 100% { transform: translateY(0); }
+  50%      { transform: translateY(-16px); }
+}
+.portal-chip {
+  position: absolute;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 16px;
+  border-radius: 999px;
+  font-size: 12px;
+  letter-spacing: 0.12em;
+  color: var(--gold);
+  background: rgba(10, 16, 32, 0.62);
+  border: 1px solid var(--border-strong, rgba(230, 201, 143, 0.35));
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.35);
+  white-space: nowrap;
+}
+
+/* 滚动指示 */
+.scroll-cue {
+  width: 26px;
+  height: 42px;
+  border: 2px solid rgba(230, 201, 143, 0.45);
+  border-radius: 14px;
+  position: relative;
+}
+.scroll-cue::after {
+  content: "";
+  position: absolute;
+  left: 50%;
+  top: 7px;
+  width: 3px;
+  height: 8px;
+  margin-left: -1.5px;
+  border-radius: 2px;
+  background: var(--gold);
+  animation: cue-drop 1.8s ease-in-out infinite;
+}
+@keyframes cue-drop {
+  0% { transform: translateY(0); opacity: 1; }
+  70% { transform: translateY(14px); opacity: 0; }
+  100% { opacity: 0; }
+}
+
+/* ══════════════════════════════════════════════════════════════════════════
+   技能跑马灯
+   ══════════════════════════════════════════════════════════════════════════ */
+.marquee {
+  overflow: hidden;
+  position: relative;
+  mask-image: linear-gradient(90deg, transparent, #000 14%, #000 86%, transparent);
+  -webkit-mask-image: linear-gradient(90deg, transparent, #000 14%, #000 86%, transparent);
+}
+.marquee-track {
+  display: flex;
+  width: max-content;
+  animation: marquee-scroll 32s linear infinite;
+}
+.marquee:hover .marquee-track {
+  animation-play-state: paused;
+}
+.marquee-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 14px;
+  padding: 10px 26px;
+  font-size: 13.5px;
+  letter-spacing: 0.14em;
+  color: var(--text-dim);
+  white-space: nowrap;
+}
+.marquee-item::after {
+  content: "✦";
+  color: var(--gold-deep);
+  font-size: 10px;
+  opacity: 0.75;
+}
+@keyframes marquee-scroll {
+  to { transform: translateX(-50%); }
+}
+
+/* ══════════════════════════════════════════════════════════════════════════
+   章节骨架
+   ══════════════════════════════════════════════════════════════════════════ */
+.section {
+  position: relative;
+  padding-top: clamp(72px, 9vw, 116px);
+}
+.section-inner {
+  max-width: 1120px;
+  margin: 0 auto;
+  padding: 0 24px;
+}
+.section-head {
+  display: flex;
+  align-items: flex-end;
+  gap: 18px;
+  margin-bottom: 36px;
+}
+.section-index {
+  font-family: var(--font-display);
+  font-size: clamp(2.2rem, 4vw, 3.1rem);
+  line-height: 0.9;
+  font-weight: 800;
+  color: transparent;
+  -webkit-text-stroke: 1px rgba(230, 201, 143, 0.4);
+  flex-shrink: 0;
+}
+.section-title {
+  font-family: var(--font-display);
+  font-size: clamp(1.55rem, 3vw, 2.1rem);
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  line-height: 1;
+}
+.section-title .en {
+  margin-left: 10px;
+  font-size: 0.5em;
+  font-weight: 500;
+  letter-spacing: 0.34em;
+  color: var(--muted);
+  font-family: var(--font-body);
+  text-transform: uppercase;
+}
+.section-line {
+  flex: 1;
+  height: 1px;
+  margin-bottom: 10px;
+  background: linear-gradient(90deg, var(--border-strong, rgba(230, 201, 143, 0.35)), transparent);
+}
+
+/* 滚动显现 */
+.reveal {
+  opacity: 0;
+  transform: translateY(28px);
+  transition: opacity 0.9s var(--ease-out), transform 0.9s var(--ease-out);
+  transition-delay: var(--d, 0s);
+}
+.reveal.is-visible {
+  opacity: 1;
+  transform: none;
+}
+
+/* ══════════════════════════════════════════════════════════════════════════
+   玻璃卡片（兼容既有组件：glassmorphism / glass-card / glass-panel）
+   ══════════════════════════════════════════════════════════════════════════ */
+.glassmorphism {
+  position: relative;
+  backdrop-filter: blur(18px);
+  -webkit-backdrop-filter: blur(18px);
+  background: var(--surface);
+  border: 1px solid var(--border);
+}
+.glass-card {
+  position: relative;
+  backdrop-filter: blur(18px);
+  -webkit-backdrop-filter: blur(18px);
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 20px;
+  padding: 24px;
+  transition: border-color 0.3s, box-shadow 0.3s, transform 0.3s;
+}
+.glass-card:hover {
+  border-color: rgba(230, 201, 143, 0.34);
+  box-shadow: 0 14px 46px rgba(0, 0, 0, 0.38),
+    0 0 0 1px rgba(230, 201, 143, 0.05);
+}
+.glass-panel {
+  position: relative;
+  backdrop-filter: blur(22px);
+  -webkit-backdrop-filter: blur(22px);
+  background: rgba(13, 20, 38, 0.6);
+  border: 1px solid var(--border);
+  border-radius: 24px;
+  padding: 32px;
+  box-shadow: 0 24px 70px rgba(0, 0, 0, 0.4);
+}
+.genshin-title {
+  color: var(--text);
+  font-weight: 700;
+  letter-spacing: 0.04em;
+}
+
+/* 进程区：重置 ContributionGraph 自带面板，融入章节卡片 */
+.journey-graph {
+  position: relative;
+  border-radius: 24px;
+  border: 1px solid var(--border);
+  background: linear-gradient(160deg, rgba(22, 32, 60, 0.55), rgba(9, 14, 28, 0.72));
+  padding: 26px 22px 22px;
+  overflow: hidden;
+}
+.journey-graph::before {
+  content: "";
+  position: absolute;
+  inset: 0 0 auto 0;
+  height: 220px;
+  background: radial-gradient(60% 100% at 50% 0%, rgba(230, 201, 143, 0.07), transparent 70%);
+  pointer-events: none;
+}
+.journey-graph .glass-panel {
+  background: transparent !important;
+  border: none !important;
+  box-shadow: none !important;
+  padding: 0 !important;
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+}
+
+/* 最近日志小卡片 */
+.log-chips {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(235px, 1fr));
+  gap: 12px;
+  margin-top: 22px;
+}
+.log-chip {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 16px;
+  border-radius: 16px;
+  background: rgba(151, 168, 200, 0.05);
+  border: 1px solid var(--border-soft);
+  text-decoration: none;
+  transition: border-color 0.25s, background 0.25s, transform 0.25s;
+  min-width: 0;
+}
+.log-chip:hover {
+  border-color: rgba(230, 201, 143, 0.4);
+  background: rgba(230, 201, 143, 0.07);
+  transform: translateY(-2px);
+}
+.log-chip-date {
+  font-size: 11px;
+  color: var(--gold);
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0.08em;
+  flex-shrink: 0;
+  font-family: var(--font-display);
+}
+.log-chip-title {
+  font-size: 13px;
+  color: var(--text-dim);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* ══════════════════════════════════════════════════════════════════════════
+   悬浮操作按钮（音乐 / 回到顶部）
+   ══════════════════════════════════════════════════════════════════════════ */
+.fab-cluster {
+  position: fixed;
+  right: 22px;
+  bottom: 22px;
+  z-index: 85;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+}
+.fab {
+  width: 50px;
+  height: 50px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(10, 16, 32, 0.6);
+  border: 1px solid var(--border-strong, rgba(230, 201, 143, 0.35));
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+  color: var(--gold);
+  box-shadow: 0 8px 28px rgba(0, 0, 0, 0.4);
+  transition: transform 0.25s var(--ease-out), border-color 0.25s, background 0.25s;
+}
+.fab:hover {
+  transform: translateY(-2px) scale(1.06);
+  background: rgba(230, 201, 143, 0.14);
+}
+#back-top {
+  opacity: 0;
+  pointer-events: none;
+  transform: translateY(10px);
+  transition: opacity 0.3s, transform 0.3s;
+}
+#back-top.is-visible {
+  opacity: 1;
+  pointer-events: auto;
+  transform: none;
+}
+
+/* 音乐律动条 */
+.eq {
+  display: flex;
+  align-items: flex-end;
+  gap: 2.5px;
+  height: 18px;
+}
+.eq i {
+  width: 3px;
+  height: 100%;
+  border-radius: 2px;
+  background: currentColor;
+  transform-origin: bottom;
+  animation: eq-bounce 0.9s ease-in-out infinite;
+}
+.eq i:nth-child(1) { animation-delay: 0s; }
+.eq i:nth-child(2) { animation-delay: 0.22s; }
+.eq i:nth-child(3) { animation-delay: 0.1s; }
+.eq i:nth-child(4) { animation-delay: 0.32s; }
+.eq.paused i {
+  animation-play-state: paused;
+  transform: scaleY(0.28);
+}
+@keyframes eq-bounce {
+  0%, 100% { transform: scaleY(0.3); }
+  50%      { transform: scaleY(1); }
+}
+
+/* ══════════════════════════════════════════════════════════════════════════
+   页脚
+   ══════════════════════════════════════════════════════════════════════════ */
+.site-footer {
+  position: relative;
+  margin-top: clamp(90px, 12vw, 150px);
+  border-top: 1px solid var(--border-soft);
+  background: linear-gradient(180deg, transparent, rgba(5, 8, 17, 0.85));
+}
+.site-footer-inner {
+  max-width: 1120px;
+  margin: 0 auto;
+  padding: 48px 24px 66px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 20px;
+  text-align: center;
+}
+.footer-sign {
+  font-family: var(--font-display);
+  font-size: 1.1rem;
+  letter-spacing: 0.34em;
+  color: var(--text-dim);
+  text-indent: 0.34em;
+}
+.footer-sign em {
+  font-style: normal;
+  color: var(--gold);
+}
+.footer-links {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 26px;
+}
+.footer-links a {
+  color: var(--muted);
+  font-size: 13px;
+  letter-spacing: 0.1em;
+  text-decoration: none;
+  transition: color 0.25s;
+}
+.footer-links a:hover {
+  color: var(--gold);
+}
+.footer-copy {
+  font-size: 12px;
+  color: var(--muted);
+  letter-spacing: 0.14em;
+}
+.footer-star {
+  display: inline-block;
+  color: var(--gold);
+  animation: footer-pulse 2.4s ease-in-out infinite;
+}
+@keyframes footer-pulse {
+  0%, 100% { opacity: 0.45; transform: scale(0.92); }
+  50%      { opacity: 1; transform: scale(1.1); }
+}
+
+/* ══════════════════════════════════════════════════════════════════════════
+   内容排版（prose：博客弹窗 / 展望卡片 等全局渲染区）
+   ══════════════════════════════════════════════════════════════════════════ */
+.prose {
+  color: var(--text-dim);
+  line-height: 1.85;
+  font-size: 0.95rem;
+}
+.prose h2 {
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: 1.55rem;
+  margin: 1.6rem 0 0.8rem;
+  background: linear-gradient(90deg, var(--text), var(--gold));
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+.prose h3 {
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: 1.2rem;
+  margin: 1.3rem 0 0.6rem;
+  color: var(--gold);
+}
+.prose strong {
+  color: var(--gold);
+  font-weight: 700;
+}
+.prose code {
+  background: rgba(255, 255, 255, 0.07);
+  border: 1px solid var(--border-soft);
+  padding: 0.15em 0.45em;
+  border-radius: 6px;
+  font-size: 0.88em;
+  color: var(--cyan);
+  font-family: Consolas, "Courier New", monospace;
+}
+.prose pre {
+  background: rgba(3, 6, 14, 0.65);
+  border: 1px solid var(--border-soft);
+  border-radius: 14px;
+  padding: 1.1rem 1.3rem;
+  overflow-x: auto;
+  margin: 1rem 0;
+}
+.prose pre code {
+  background: none;
+  border: none;
+  padding: 0;
+  color: var(--text-dim);
+}
+.prose a {
+  color: var(--cyan);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  transition: color 0.2s;
+}
+.prose a:hover {
+  color: var(--gold);
+}
+.prose ul,
+.prose ol {
+  margin: 0.6rem 0;
+  padding-left: 1.5rem;
+}
+.prose li {
+  margin: 0.35rem 0;
+}
+.prose li::marker {
+  color: var(--gold);
+}
+.prose blockquote {
+  border-left: 3px solid var(--gold-soft);
+  padding-left: 1rem;
+  color: var(--muted);
+  font-style: italic;
+  margin: 1rem 0;
+}
+.prose-outlook p {
+  color: rgba(237, 241, 249, 0.78);
+  line-height: 1.9;
+  font-size: 0.9rem;
+}
+
+/* ── 文字工具类 ── */
+.font-display {
+  font-family: var(--font-display);
+}
+.text-dim {
+  color: var(--text-dim);
+}
+.text-muted {
+  color: var(--muted);
+}
+.text-gold {
+  color: var(--gold);
+}
+
+/* ── 星座图内部星空背景（SkillConstellation 使用，保留类名并升级）── */
+.starfield-bg {
+  position: relative;
+  background: transparent;
+  overflow: hidden;
+}
+.starfield-bg::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background-image:
+    radial-gradient(1.5px 1.5px at 20px 30px, rgba(255, 255, 255, 0.75), transparent 60%),
+    radial-gradient(1px 1px at 60px 70px, rgba(255, 255, 255, 0.55), transparent 60%),
+    radial-gradient(1.5px 1.5px at 50px 50px, rgba(255, 255, 255, 0.65), transparent 60%),
+    radial-gradient(1px 1px at 130px 80px, rgba(255, 255, 255, 0.45), transparent 60%),
+    radial-gradient(1.5px 1.5px at 90px 10px, rgba(255, 255, 255, 0.75), transparent 60%),
+    radial-gradient(1px 1px at 140px 140px, rgba(255, 255, 255, 0.55), transparent 60%),
+    radial-gradient(1.5px 1.5px at 10px 90px, rgba(255, 255, 255, 0.65), transparent 60%);
+  background-size: 190px 190px;
+  animation: twinkle 3.2s ease-in-out infinite;
+}
+@keyframes twinkle {
+  0%, 100% { opacity: 0.35; }
+  50%      { opacity: 1; }
+}
+
+/* ══════════════════════════════════════════════════════════════════════════
+   无障碍：减少动态效果
+   ══════════════════════════════════════════════════════════════════════════ */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+  html {
+    scroll-behavior: auto;
   }
 }

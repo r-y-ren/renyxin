@@ -165,8 +165,8 @@ function AchievementTile({
       <div
         className="relative overflow-hidden rounded-2xl p-5 flex flex-col items-center text-center"
         style={{
-          background: `linear-gradient(150deg, #161b22 0%, #0d1117 80%, ${t.bg} 100%)`,
-          border: `1px solid #30363d`,
+          background: `linear-gradient(150deg, #111a30 0%, #0a1224 80%, ${t.bg} 100%)`,
+          border: `1px solid #26324e`,
           boxShadow: `inset 0 1px 0 rgba(255,255,255,0.04), 0 8px 24px rgba(0,0,0,0.45)`,
         }}
       >
@@ -224,13 +224,13 @@ function AchievementTile({
         {/* Title */}
         <h3
           className="font-bold text-[13px] leading-snug mb-2.5 px-1"
-          style={{ color: "#e6edf3" }}
+          style={{ color: "#edf1f9" }}
         >
           {a.data.title}
         </h3>
 
         {/* Date */}
-        <time className="text-[11px] tabular-nums" style={{ color: "#7d8590" }}>
+        <time className="text-[11px] tabular-nums" style={{ color: "#7b86a0" }}>
           {a.data.date.toLocaleDateString("zh-CN", {
             year: "numeric",
             month: "short",
@@ -294,8 +294,8 @@ export default function AchievementGrid({
                   <div
                     className="relative max-w-sm w-full rounded-3xl p-8 overflow-hidden"
                     style={{
-                      background: `linear-gradient(150deg, #161b22 0%, #0d1117 80%, ${t.bg} 100%)`,
-                      border: `1px solid #30363d`,
+                      background: `linear-gradient(150deg, #111a30 0%, #0a1224 80%, ${t.bg} 100%)`,
+                      border: `1px solid #26324e`,
                       boxShadow: `0 32px 64px rgba(0,0,0,0.6)`,
                     }}
                   >
@@ -358,13 +358,13 @@ export default function AchievementGrid({
                       </span>
                       <h2
                         className="text-xl font-bold mb-1"
-                        style={{ color: "#e6edf3" }}
+                        style={{ color: "#edf1f9" }}
                       >
                         {selected.data.title}
                       </h2>
                       <time
                         className="block text-xs mb-5"
-                        style={{ color: "#7d8590" }}
+                        style={{ color: "#7b86a0" }}
                       >
                         {selected.data.date.toLocaleDateString("zh-CN", {
                           year: "numeric",

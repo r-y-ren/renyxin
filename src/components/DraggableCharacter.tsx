@@ -60,7 +60,8 @@ const BODY_FONT_SIZE = 20; // 正文字体大小（像素）
 const BODY_LINE_HEIGHT = 34; // 正文行高（像素）
 const BODY_FONT = `${BODY_FONT_SIZE}px Georgia, "Times New Roman", serif`; // 字体描述
 const BODY_TEXT_COLOR = "rgba(236, 229, 216, 0.92)"; // 正文颜色
-const CANVAS_PADDING_X = 12; // 画布水平内边距
+const CANVAS_PADDING_X = 12; // 画布左侧内边距
+const CANVAS_PADDING_RIGHT = 16; // 画布右侧安全余量：吸收测量误差，防止字形被画布边缘裁切
 const CANVAS_PADDING_Y = 0; // 画布垂直内边距
 const STAGE_MIN_HEIGHT = 560; // 舞台最小高度（未使用，保留备用）
 
@@ -238,7 +239,10 @@ function buildGlyphProjection(
   canvasSize: Size,
   obstacle: CapsuleObstacle,
 ): GlyphProjection {
-  const innerWidth = Math.max(0, canvasSize.width - CANVAS_PADDING_X * 2);
+  const innerWidth = Math.max(
+    0,
+    canvasSize.width - CANVAS_PADDING_X - CANVAS_PADDING_RIGHT,
+  );
   const baselineOffset = BODY_FONT_SIZE * 0.84; // 基线偏移经验值，使文字垂直居中
   const glyphs: PositionedGlyph[] = [];
   let cursor: LayoutCursor = { segmentIndex: 0, graphemeIndex: 0 };
@@ -272,9 +276,18 @@ function buildGlyphProjection(
       let currentX = CANVAS_PADDING_X + slot.x;
       const baselineY = CANVAS_PADDING_Y + lineTop + baselineOffset;
 
+      // 逐字前进量用「前一字 + 当前字」成对测量，使字符间距与整行测量
+      // （pretext 断行所用）保持一致。否则单字宽度累加会忽略相邻字符
+      // 间的字距（kerning），行宽被高估，行尾文字越过画布右缘被裁切。
+      let prevGrapheme = "";
       for (const grapheme of graphemes) {
+        const advance = prevGrapheme
+          ? ctx.measureText(prevGrapheme + grapheme).width -
+            ctx.measureText(prevGrapheme).width
+          : ctx.measureText(grapheme).width;
         glyphs.push({ char: grapheme, x: currentX, y: baselineY });
-        currentX += ctx.measureText(grapheme).width;
+        currentX += advance;
+        prevGrapheme = grapheme;
       }
 
       cursor = range.end;

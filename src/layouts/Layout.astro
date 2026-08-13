@@ -2,31 +2,23 @@
 /**
  * src/layouts/Layout.astro
  * ──────────────────────────────────────────────────────────────────────────────
- * 全站公共页面外壳（Shell Layout）。
- * 所有页面均通过 <Layout> 包裹，统一提供：
- *   1. HTML 文档结构（head meta / 字符集 / favicon / title）
+ * 星穹档案 · 全站公共页面外壳
+ * 统一提供：
+ *   1. HTML 文档结构（head meta / favicon / title）
  *   2. 全局样式注入（src/styles/globals.css）
- *   3. 可选的星空粒子背景（starfield-bg，通过 showStarfield prop 控制）
- *   4. z-index 层叠上下文（星空在 fixed inset-0，内容在 relative z-10）
- *
- * 消费方：
- *   src/pages/index.astro              → showStarfield={false}（关闭星空，使用自己的背景）
- *   src/pages/daily-log/[...slug].astro → 默认 showStarfield=true
+ *   3. 三层动态背景：极光光晕（CSS） + Canvas 星野（含流星） + 指针光斑
+ *   4. 加载动画（R·monogram + 进度条，载入后淡出）
+ *   5. 顶部滚动进度条 + 自定义光标（仅精细指针设备）
+ *   6. 背景音乐（带律动频谱按钮）+ 回到顶部悬浮按钮
+ *   7. .reveal 滚动显现观察器
  */
 import '../styles/globals.css';
 
-/**
- * 组件 Props 接口
- * @prop title       - 页面 <title> 标签内容，搜索引擎和标签栏展示
- * @prop showStarfield - 是否渲染星空粒子背景层，默认为 true
- */
 interface Props {
   title: string;
-  showStarfield?: boolean;
 }
 
-// 解构 props，showStarfield 默认启用
-const { title, showStarfield = true } = Astro.props;
+const { title } = Astro.props;
 ---
 
 <!doctype html>
@@ -34,81 +26,285 @@ const { title, showStarfield = true } = Astro.props;
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width" />
-    <!-- Favicons：多格式兼容，位于 public/Myfavicon/ -->
     <link rel="icon" type="image/x-icon" href="/Myfavicon/favicon.ico" />
     <link rel="icon" type="image/svg+xml" href="/Myfavicon/favicon.svg" />
     <link rel="icon" type="image/png" sizes="96x96" href="/Myfavicon/favicon-96x96.png" />
     <link rel="apple-touch-icon" href="/Myfavicon/apple-touch-icon.png" />
     <link rel="manifest" href="/Myfavicon/site.webmanifest" />
     <meta name="generator" content={Astro.generator} />
+    <meta name="description" content="千心の鱼的个人星穹档案 —— 技术栈 / 博客 / 成就 / 每日进程" />
     <title>{title}</title>
   </head>
-  <body class="bg-genshin-dark text-genshin-light">
-    {/* 星空背景层：通过 fixed inset-0 覆盖全屏，pointer-events-none 不拦截点击 */}
-    {showStarfield && (
-      <div class="fixed inset-0 starfield-bg pointer-events-none" aria-hidden="true"></div>
-    )}
-    {/* 页面内容层：相对定位 z-10，确保在星空层之上 */}
-    <div class="relative z-10">
+  <body>
+    <!-- ═══ 背景层 ═══ -->
+    <div class="aurora" aria-hidden="true"><i></i><i></i><i></i></div>
+    <canvas id="bg-stars" class="bg-stars" aria-hidden="true"></canvas>
+    <div class="vignette" aria-hidden="true"></div>
+    <div id="cursor-glow" class="cursor-glow" aria-hidden="true"></div>
+
+    <!-- ═══ 加载动画 ═══ -->
+    <div id="preloader" class="preloader" aria-hidden="true">
+      <div>
+        <div class="preloader-mono">R<span class="preloader-dot">.</span></div>
+        <div class="preloader-bar"><i></i></div>
+      </div>
+    </div>
+
+    <!-- ═══ 滚动进度 + 自定义光标 ═══ -->
+    <div id="scroll-progress" aria-hidden="true"></div>
+    <div id="cursor-dot" class="cursor-dot" aria-hidden="true"></div>
+    <div id="cursor-ring" class="cursor-ring" aria-hidden="true"></div>
+
+    <!-- ═══ 页面内容 ═══ -->
+    <div class="page" id="page">
       <slot />
     </div>
 
-    <!-- 背景音乐 -->
+    <!-- ═══ 背景音乐 + 悬浮操作 ═══ -->
     <audio id="bg-music" src="/music/music1.mp3" loop preload="auto"></audio>
-    <!-- 悬浮音乐控制按钮 -->
-    <button
-      id="music-btn"
-      aria-label="切换背景音乐"
-      title="点击播放背景音乐"
-      class="fixed bottom-6 right-6 z-50 w-12 h-12 rounded-full
-             bg-black/40 backdrop-blur-sm border border-genshin-gold/40
-             text-genshin-gold hover:bg-genshin-gold/20 hover:border-genshin-gold
-             transition-all duration-300 flex items-center justify-center text-xl
-             shadow-lg cursor-pointer select-none"
-    >
-      🔇
-    </button>
+    <div class="fab-cluster">
+      <button id="music-btn" class="fab" aria-label="播放背景音乐" title="播放背景音乐">
+        <span id="music-eq" class="eq paused" aria-hidden="true"><i></i><i></i><i></i><i></i></span>
+      </button>
+      <button id="back-top" class="fab" aria-label="回到顶部" title="回到顶部">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+          <path d="M12 19V5M5 12l7-7 7 7" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+      </button>
+    </div>
   </body>
 </html>
 
 <script>
-  const audio = document.getElementById('bg-music') as HTMLAudioElement;
-  const btn = document.getElementById('music-btn') as HTMLButtonElement;
+  const prefersReduced = window.matchMedia(
+    '(prefers-reduced-motion: reduce)',
+  ).matches;
+  const finePointer = window.matchMedia('(pointer: fine)').matches;
 
-  function updateBtn() {
-    const muted = audio.paused;
-    btn.textContent = muted ? '🔇' : '🎵';
-    btn.title = muted ? '点击播放背景音乐' : '点击暂停背景音乐';
+  // ── 1. 加载动画：页面载入后淡出 ──────────────────────────────────────────
+  const preloader = document.getElementById('preloader');
+  const page = document.getElementById('page');
+  const hidePreloader = () => {
+    if (!preloader) return;
+    preloader.classList.add('is-done');
+    page?.classList.add('is-ready');
+  };
+  if (document.readyState === 'complete') {
+    setTimeout(hidePreloader, 500);
+  } else {
+    window.addEventListener('load', () => setTimeout(hidePreloader, 500));
+  }
+  setTimeout(hidePreloader, 2800); // 兜底：最迟 2.8s 放行
+
+  // ── 2. Canvas 星野：闪烁星辰 + 鼠标视差 + 偶发流星 ───────────────────────
+  const canvas = document.getElementById('bg-stars');
+  if (canvas && canvas instanceof HTMLCanvasElement) {
+    const ctx = canvas.getContext('2d');
+    let W = 0;
+    let H = 0;
+    let stars: { x: number; y: number; r: number; a: number; tw: number; ph: number }[] = [];
+    let meteors: { x: number; y: number; vx: number; vy: number; life: number; max: number }[] = [];
+    let nextMeteor = 3 + Math.random() * 5;
+    const mouse = { x: window.innerWidth / 2, y: window.innerHeight / 2 };
+
+    const initStars = () => {
+      const count = Math.min(180, Math.floor((W * H) / 8200));
+      stars = Array.from({ length: count }, () => ({
+        x: Math.random() * W,
+        y: Math.random() * H,
+        r: 0.4 + Math.random() * 1.15,
+        a: 0.22 + Math.random() * 0.65,
+        tw: 0.6 + Math.random() * 2.4,
+        ph: Math.random() * Math.PI * 2,
+      }));
+    };
+
+    const resize = () => {
+      const dpr = Math.min(window.devicePixelRatio || 1, 2);
+      W = window.innerWidth;
+      H = window.innerHeight;
+      canvas.width = W * dpr;
+      canvas.height = H * dpr;
+      ctx?.setTransform(dpr, 0, 0, dpr, 0, 0);
+      initStars();
+    };
+
+    let t = 0;
+    const draw = () => {
+      if (!ctx) return;
+      t += 0.016;
+      ctx.clearRect(0, 0, W, H);
+
+      // 星辰（含鼠标视差）
+      for (const s of stars) {
+        const alpha = s.a * (0.5 + 0.5 * Math.sin(t * s.tw + s.ph));
+        const px = s.x + (mouse.x - W / 2) * 0.014 * s.r;
+        const py = s.y + (mouse.y - H / 2) * 0.014 * s.r;
+        ctx.beginPath();
+        ctx.arc(px, py, s.r, 0, Math.PI * 2);
+        ctx.fillStyle = `rgba(226, 232, 255, ${alpha.toFixed(3)})`;
+        ctx.fill();
+      }
+
+      // 流星
+      if (!prefersReduced && t > nextMeteor && meteors.length < 2) {
+        const fromX = Math.random() * W * 0.7 + W * 0.15;
+        const fromY = Math.random() * H * 0.3;
+        meteors.push({
+          x: fromX,
+          y: fromY,
+          vx: -(3 + Math.random() * 3.4),
+          vy: 1.6 + Math.random() * 1.8,
+          life: 0,
+          max: 60 + Math.random() * 40,
+        });
+        nextMeteor = t + 6 + Math.random() * 8;
+      }
+      meteors = meteors.filter((m) => m.life < m.max);
+      for (const m of meteors) {
+        m.life += 1;
+        m.x += m.vx;
+        m.y += m.vy;
+        const fade = 1 - m.life / m.max;
+        const tail = 14;
+        const grad = ctx.createLinearGradient(m.x, m.y, m.x - m.vx * tail, m.y - m.vy * tail);
+        grad.addColorStop(0, `rgba(240, 232, 210, ${(0.85 * fade).toFixed(3)})`);
+        grad.addColorStop(1, 'rgba(240, 232, 210, 0)');
+        ctx.strokeStyle = grad;
+        ctx.lineWidth = 1.4;
+        ctx.beginPath();
+        ctx.moveTo(m.x, m.y);
+        ctx.lineTo(m.x - m.vx * tail, m.y - m.vy * tail);
+        ctx.stroke();
+      }
+    };
+
+    const frame = () => {
+      draw();
+      if (!prefersReduced) requestAnimationFrame(frame);
+    };
+
+    window.addEventListener('resize', resize);
+    window.addEventListener('mousemove', (e) => {
+      mouse.x = e.clientX;
+      mouse.y = e.clientY;
+    });
+    resize();
+    if (prefersReduced) {
+      draw();
+    } else {
+      requestAnimationFrame(frame);
+    }
   }
 
-  audio.addEventListener('play', updateBtn);
-  audio.addEventListener('pause', updateBtn);
+  // ── 3. 指针光斑 + 自定义光标（仅精细指针 / 非减弱动效）────────────────────
+  if (finePointer && !prefersReduced) {
+    document.documentElement.classList.add('has-custom-cursor');
+    const dot = document.getElementById('cursor-dot');
+    const ring = document.getElementById('cursor-ring');
+    const glow = document.getElementById('cursor-glow');
+    let mx = window.innerWidth / 2;
+    let my = window.innerHeight / 2;
+    let rx = mx;
+    let ry = my;
 
-  btn.addEventListener('click', () => {
+    window.addEventListener('mousemove', (e) => {
+      mx = e.clientX;
+      my = e.clientY;
+      if (dot) dot.style.transform = `translate(${mx}px, ${my}px) translate(-50%, -50%)`;
+      if (glow) glow.style.transform = `translate(${mx}px, ${my}px) translate(-50%, -50%)`;
+    });
+
+    const follow = () => {
+      rx += (mx - rx) * 0.16;
+      ry += (my - ry) * 0.16;
+      if (ring) ring.style.transform = `translate(${rx}px, ${ry}px) translate(-50%, -50%)`;
+      requestAnimationFrame(follow);
+    };
+    requestAnimationFrame(follow);
+
+    document.addEventListener('mouseover', (e) => {
+      const target = e.target as Element | null;
+      if (target?.closest('a, button, [data-cursor], input, textarea, select')) {
+        ring?.classList.add('is-active');
+      }
+    });
+    document.addEventListener('mouseout', (e) => {
+      const target = e.target as Element | null;
+      if (target?.closest('a, button, [data-cursor], input, textarea, select')) {
+        ring?.classList.remove('is-active');
+      }
+    });
+  }
+
+  // ── 4. 滚动进度条 + 回到顶部 ─────────────────────────────────────────────
+  const progress = document.getElementById('scroll-progress');
+  const backTop = document.getElementById('back-top');
+  let ticking = false;
+  const onScroll = () => {
+    if (ticking) return;
+    ticking = true;
+    requestAnimationFrame(() => {
+      const max = document.documentElement.scrollHeight - window.innerHeight;
+      const p = max > 0 ? (window.scrollY / max) * 100 : 0;
+      if (progress) progress.style.width = p + '%';
+      if (backTop) backTop.classList.toggle('is-visible', window.scrollY > 560);
+      ticking = false;
+    });
+  };
+  window.addEventListener('scroll', onScroll, { passive: true });
+  onScroll();
+  backTop?.addEventListener('click', () =>
+    window.scrollTo({ top: 0, behavior: 'smooth' }),
+  );
+
+  // ── 5. 背景音乐（律动频谱）───────────────────────────────────────────────
+  const audio = document.getElementById('bg-music') as HTMLAudioElement | null;
+  const musicBtn = document.getElementById('music-btn') as HTMLButtonElement | null;
+  const eq = document.getElementById('music-eq');
+
+  const syncMusic = () => {
+    if (!audio || !musicBtn || !eq) return;
+    const playing = !audio.paused && !audio.ended;
+    eq.classList.toggle('paused', !playing);
+    const label = playing ? '暂停背景音乐' : '播放背景音乐';
+    musicBtn.title = label;
+    musicBtn.setAttribute('aria-label', label);
+  };
+  audio?.addEventListener('play', syncMusic);
+  audio?.addEventListener('pause', syncMusic);
+  musicBtn?.addEventListener('click', () => {
+    if (!audio) return;
     if (audio.paused) {
       audio.play().catch(() => {});
     } else {
       audio.pause();
     }
   });
-
   // 首次用户交互后尝试自动播放
-  document.addEventListener('click', () => {
-    if (audio.paused) {
-      audio.play().catch(() => {});
-    }
-  }, { once: true });
-</script>
+  document.addEventListener(
+    'click',
+    () => {
+      if (audio && audio.paused) {
+        audio.play().catch(() => {});
+      }
+    },
+    { once: true },
+  );
 
-<style is:global>
-  /* 全局配色方案：强制暗色模式，防止系统亮色模式覆盖 */
-  :root {
-    color-scheme: dark;
-  }
-  
-  /* 全局字体与字间距基础设置 */
-  html {
-    font-family: system-ui, -apple-system, sans-serif;
-    letter-spacing: 0.5px;
-  }
-</style>
+  // ── 6. .reveal 滚动显现观察器 ────────────────────────────────────────────
+  const revealObserver = new IntersectionObserver(
+    (entries) => {
+      for (const entry of entries) {
+        if (entry.isIntersecting) {
+          entry.target.classList.add('is-visible');
+          revealObserver.unobserve(entry.target);
+        }
+      }
+    },
+    { threshold: 0.12, rootMargin: '0px 0px -6% 0px' },
+  );
+  document
+    .querySelectorAll('.reveal')
+    .forEach((el) => revealObserver.observe(el));
+</script>
