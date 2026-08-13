@@ -324,20 +324,22 @@ export default function SkillConstellation({
   const panX = useMotionValue(0);
   const panY = useMotionValue(0);
 
-  // 动态拖拽边界：随容器实际尺寸缩放，避免小屏把星域拖出视野
-  const shellRef = useRef<HTMLDivElement | null>(null);
-  const [shellSize, setShellSize] = useState({ w: 0, h: 0 });
+  // 动态拖拽边界：以 SVG 实际渲染尺寸为准（而非外框高度——
+  // 外框会被右侧面板撑高，若按外框计算边界，星座可被平移到
+  // SVG 视口之外而被裁切）
+  const svgRef = useRef<SVGSVGElement | null>(null);
+  const [svgSize, setSvgSize] = useState({ w: 0, h: 0 });
   useEffect(() => {
-    const el = shellRef.current;
+    const el = svgRef.current;
     if (!el) return;
-    const update = () => setShellSize({ w: el.clientWidth, h: el.clientHeight });
+    const update = () => setSvgSize({ w: el.clientWidth, h: el.clientHeight });
     update();
     const ro = new ResizeObserver(update);
     ro.observe(el);
     return () => ro.disconnect();
   }, []);
-  const MAX_PAN_X = Math.max(70, Math.round(shellSize.w * 0.2));
-  const MAX_PAN_Y = Math.max(50, Math.round(shellSize.h * 0.22));
+  const MAX_PAN_X = Math.max(60, Math.round(svgSize.w * 0.18));
+  const MAX_PAN_Y = Math.max(44, Math.round(svgSize.h * 0.2));
 
   // 3D 鼠标视差
   const tiltX = useMotionValue(0);
@@ -472,10 +474,9 @@ export default function SkillConstellation({
         </span>
       </div>
 
-      <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_320px]">
+      <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_320px] lg:items-start">
         {/* ═══ 星图 ═══ */}
         <div
-          ref={shellRef}
           className="relative overflow-hidden rounded-3xl border border-white/10 bg-[linear-gradient(160deg,rgba(20,31,60,0.55),rgba(6,10,20,0.9))]"
           onMouseMove={(e) => {
             if (isDragging) return;
@@ -502,6 +503,7 @@ export default function SkillConstellation({
               style={{ rotateX, rotateY, transformStyle: "preserve-3d" }}
             >
               <svg
+                ref={svgRef}
                 viewBox={"0 0 " + width + " " + height}
                 className="relative z-10 block w-full"
                 style={{
