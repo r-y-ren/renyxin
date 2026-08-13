@@ -273,8 +273,8 @@ export default function Hero({
             <a
               key={link.href}
               href={link.href}
-              target="_blank"
-              rel="noopener noreferrer"
+              target={link.href.startsWith("http") ? "_blank" : undefined}
+              rel={link.href.startsWith("http") ? "noopener noreferrer" : undefined}
               className="text-sm text-muted hover:text-genshin-gold transition-colors duration-300 tracking-widest underline-offset-4 hover:underline"
               data-cursor
             >

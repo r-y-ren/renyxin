@@ -2,7 +2,7 @@
 title: "Tailwind CSS 和毛玻璃设计"
 date: "2024-04-12"
 tags: ["tailwind", "css", "design"]
-coverImage: "https://images.unsplash.com/photo-1561070791-2526d30994b5?w=800"
+coverImage: "/pictures/blog-tailwind.jpg"
 ---
 
 这篇文章介绍了如何使用 Tailwind CSS 快速构建现代化的用户界面，特别是毛玻璃（Glassmorphism）设计风格。

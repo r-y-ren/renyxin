@@ -30,8 +30,8 @@
     --cyan: #8adbe8;
     --violet: #9d8cf8;
     /* ── 字体 ── */
-    --font-display: "Noto Serif SC", "Source Han Serif SC", "Songti SC",
-      STSong, SimSun, Georgia, "Times New Roman", serif;
+    --font-display: "LXGW WenKai", "Noto Serif SC", "Source Han Serif SC",
+      "Songti SC", STSong, SimSun, Georgia, "Times New Roman", serif;
     --font-body: system-ui, -apple-system, "Segoe UI", "PingFang SC",
       "Hiragino Sans GB", "Microsoft YaHei", sans-serif;
     /* ── 动效 ── */
@@ -1120,6 +1120,111 @@
 @keyframes twinkle {
   0%, 100% { opacity: 0.35; }
   50%      { opacity: 1; }
+}
+
+/* ══════════════════════════════════════════════════════════════════════════
+   06 未来 · 逆色金卡（页面唯一的浅色块，作为页尾视觉句号）
+   ══════════════════════════════════════════════════════════════════════════ */
+.dream-card .glass-card {
+  background:
+    radial-gradient(120% 130% at 85% -10%, rgba(230, 201, 143, 0.14), transparent 50%),
+    radial-gradient(90% 110% at 8% 108%, rgba(184, 147, 109, 0.12), transparent 55%),
+    linear-gradient(150deg, #2b2114 0%, #1d150c 55%, #150f09 100%);
+  border-color: rgba(212, 175, 112, 0.36);
+  box-shadow:
+    0 24px 60px rgba(0, 0, 0, 0.45),
+    inset 0 1px 0 rgba(255, 244, 222, 0.07),
+    0 0 70px rgba(230, 201, 143, 0.07);
+}
+.dream-card .glass-card:hover {
+  border-color: rgba(230, 201, 143, 0.55);
+  box-shadow:
+    0 28px 68px rgba(0, 0, 0, 0.5),
+    inset 0 1px 0 rgba(255, 244, 222, 0.07),
+    0 0 80px rgba(230, 201, 143, 0.1);
+}
+.dream-card [class*="text-genshin-light"] {
+  color: rgba(240, 226, 196, 0.75);
+}
+.dream-card .genshin-title {
+  color: #f3e3c0;
+}
+.dream-card [class*="border-genshin-gold"] {
+  border-color: rgba(212, 175, 112, 0.42);
+}
+.dream-card [class*="bg-genshin-gold"] {
+  background-color: rgba(212, 175, 112, 0.1);
+}
+.dream-card .text-genshin-gold {
+  color: #e0bd82;
+}
+.dream-card .prose-outlook p {
+  color: rgba(238, 224, 195, 0.8);
+}
+.dream-card .prose-outlook strong {
+  color: #e6c98f;
+}
+.dream-card .prose-outlook del {
+  color: rgba(238, 224, 195, 0.42);
+}
+
+/* ── 章节天球坐标装饰（真实星表坐标彩蛋）── */
+.section-coord {
+  display: inline-block;
+  font-family: ui-monospace, Consolas, "Cascadia Mono", "Courier New", monospace;
+  font-size: 11px;
+  letter-spacing: 0.16em;
+  color: var(--muted);
+  opacity: 0.85;
+  white-space: nowrap;
+  margin-bottom: 9px;
+  flex-shrink: 0;
+}
+@media (max-width: 639px) {
+  .section-coord {
+    display: none;
+  }
+}
+
+/* ── 彩蛋 toast ── */
+.egg-toast {
+  position: fixed;
+  left: 50%;
+  bottom: 96px;
+  transform: translate(-50%, 16px);
+  z-index: 480;
+  padding: 10px 22px;
+  border-radius: 999px;
+  background: rgba(10, 16, 32, 0.85);
+  border: 1px solid rgba(230, 201, 143, 0.45);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+  color: var(--gold);
+  font-size: 13px;
+  letter-spacing: 0.12em;
+  pointer-events: none;
+  opacity: 0;
+  white-space: nowrap;
+  transition: opacity 0.4s var(--ease-out), transform 0.4s var(--ease-out);
+}
+.egg-toast.is-show {
+  opacity: 1;
+  transform: translate(-50%, 0);
+}
+.footer-star {
+  cursor: pointer;
+}
+
+/* ── 移动端：Hero 立绘缩小，避免首屏占比过大 ── */
+@media (max-width: 767px) {
+  .portal {
+    width: min(300px, 66vw);
+  }
+  .portal-chip {
+    font-size: 10px;
+    padding: 6px 12px;
+    letter-spacing: 0.1em;
+  }
 }
 
 /* ══════════════════════════════════════════════════════════════════════════

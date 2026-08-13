@@ -31,6 +31,8 @@ const { title } = Astro.props;
     <link rel="icon" type="image/png" sizes="96x96" href="/Myfavicon/favicon-96x96.png" />
     <link rel="apple-touch-icon" href="/Myfavicon/apple-touch-icon.png" />
     <link rel="manifest" href="/Myfavicon/site.webmanifest" />
+    <!-- 自托管霞鹜文楷（子集化 woff2，unicode-range 按需加载） -->
+    <link rel="stylesheet" href="/fonts/lxgw-wenkai.css" />
     <meta name="generator" content={Astro.generator} />
     <meta name="description" content="千心の鱼的个人星穹档案 —— 技术栈 / 博客 / 成就 / 每日进程" />
     <title>{title}</title>
@@ -105,6 +107,22 @@ const { title } = Astro.props;
     let stars: { x: number; y: number; r: number; a: number; tw: number; ph: number }[] = [];
     let meteors: { x: number; y: number; vx: number; vy: number; life: number; max: number }[] = [];
     let nextMeteor = 3 + Math.random() * 5;
+
+    // 彩蛋：页脚星星连点 10 次 → 全屏流星雨（index.astro 调用）
+    (window as any).__meteorShower = () => {
+      for (let i = 0; i < 28; i++) {
+        window.setTimeout(() => {
+          meteors.push({
+            x: Math.random() * W * 0.72 + W * 0.14,
+            y: Math.random() * H * 0.28,
+            vx: -(3.2 + Math.random() * 3.6),
+            vy: 1.9 + Math.random() * 2.3,
+            life: 0,
+            max: 66 + Math.random() * 46,
+          });
+        }, i * 120);
+      }
+    };
     const mouse = { x: window.innerWidth / 2, y: window.innerHeight / 2 };
 
     const initStars = () => {

@@ -321,6 +321,28 @@ export default function SkillConstellation({
   const [focusClass, setFocusClass] = useState<string | null>(null);
   const [isDragging, setIsDragging] = useState(false);
 
+  // 彩蛋：隐藏命星（点亮后常驻，localStorage 记忆）
+  const [hiddenUnlocked, setHiddenUnlocked] = useState(false);
+  const [hiddenView, setHiddenView] = useState(false);
+  useEffect(() => {
+    try {
+      if (localStorage.getItem("ryx-hidden-star") === "1") {
+        setHiddenUnlocked(true);
+      }
+    } catch {
+      /* 隐私模式下忽略存储异常 */
+    }
+  }, []);
+  const unlockHiddenStar = () => {
+    setHiddenUnlocked(true);
+    setHiddenView(true);
+    try {
+      localStorage.setItem("ryx-hidden-star", "1");
+    } catch {
+      /* 忽略 */
+    }
+  };
+
   const panX = useMotionValue(0);
   const panY = useMotionValue(0);
 
@@ -383,6 +405,8 @@ export default function SkillConstellation({
   const active = selected ?? hovered;
 
   const core = { x: width / 2, y: height / 2 };
+  // 隐藏命星：右下角星域（彩蛋）
+  const hiddenStar = { x: width - 64, y: height - 58 };
 
   // 环境尘埃（确定性）
   const dust = useMemo(
@@ -514,7 +538,10 @@ export default function SkillConstellation({
                 role="img"
                 aria-label="技能星图：拖拽平移，悬浮星点查看，点击查看详情"
                 onClick={(e) => {
-                  if (e.target === e.currentTarget) setSelectedName(null);
+                  if (e.target === e.currentTarget) {
+                    setSelectedName(null);
+                    setHiddenView(false);
+                  }
                 }}
               >
                 <defs>
@@ -829,6 +856,7 @@ export default function SkillConstellation({
                         transition={{ duration: 0.45, ease: "easeOut" }}
                         onClick={(e) => {
                           e.stopPropagation();
+                          setHiddenView(false);
                           setSelectedName(isSel ? null : skill.name);
                         }}
                         onMouseEnter={() => setHoveredName(skill.name)}
@@ -951,6 +979,63 @@ export default function SkillConstellation({
                       </motion.g>
                     );
                   })}
+
+                  {/* 隐藏命星（彩蛋）：藏在星图深处，点击点亮 */}
+                  <motion.g
+                    role="button"
+                    tabIndex={0}
+                    aria-label="神秘的星点"
+                    style={{ cursor: "pointer", outline: "none" }}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      unlockHiddenStar();
+                    }}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter" || e.key === " ") {
+                        e.preventDefault();
+                        unlockHiddenStar();
+                      }
+                    }}
+                  >
+                    <g transform={"translate(" + hiddenStar.x + " " + hiddenStar.y + ")"}>
+                      <circle r={16} fill="transparent" />
+                      <circle r={16} fill={"url(#sc-node-2)"} style={{ pointerEvents: "none" }} />
+                      <motion.g
+                        animate={
+                          hiddenUnlocked
+                            ? { opacity: [0.8, 1, 0.8], scale: [1, 1.12, 1] }
+                            : { opacity: [0.08, 0.22, 0.08] }
+                        }
+                        transition={{ duration: 3.2, repeat: Infinity, ease: "easeInOut" }}
+                        style={{ pointerEvents: "none" }}
+                      >
+                        <path
+                          d={getFivePointStarPath(7)}
+                          fill={"url(#sc-grad-2)"}
+                          stroke="#9d8cf8"
+                          strokeWidth={0.9}
+                          strokeLinejoin="round"
+                          filter="url(#sc-star-glow)"
+                        />
+                        <circle r={0.9} fill="rgba(255,255,255,0.9)" />
+                      </motion.g>
+                      <text
+                        y={18}
+                        textAnchor="middle"
+                        fontSize="9"
+                        fill="#9d8cf8"
+                        opacity={hiddenUnlocked ? 0.95 : 0}
+                        fontFamily="system-ui, -apple-system, sans-serif"
+                        letterSpacing="0.12em"
+                        style={{ pointerEvents: "none", userSelect: "none" }}
+                      >
+                        隐藏命星
+                      </text>
+                    </g>
+                    {hiddenUnlocked && (
+                      <Sparkles x={hiddenStar.x} y={hiddenStar.y} color="#9d8cf8" seed={777} />
+                    )}
+                  </motion.g>
                 </motion.g>
               </svg>
             </motion.div>
@@ -1097,6 +1182,73 @@ export default function SkillConstellation({
                   回到星图总览
                 </button>
               </motion.div>
+            ) : hiddenView ? (
+              /* ── 隐藏命星（彩蛋）── */
+              <motion.div
+                key="hidden-star"
+                initial={{ opacity: 0, x: 26 }}
+                animate={{ opacity: 1, x: 0 }}
+                exit={{ opacity: 0, x: -18 }}
+                transition={{ duration: 0.32, ease: EASE }}
+              >
+                <p
+                  className="text-[11px] uppercase tracking-[0.3em] mb-4"
+                  style={{ color: "#9d8cf8" }}
+                >
+                  Hidden Star · 彩蛋
+                </p>
+                <div className="flex items-center gap-4 mb-5">
+                  <div
+                    className="flex items-center justify-center w-14 h-14 rounded-2xl border"
+                    style={{
+                      borderColor: "#9d8cf866",
+                      background:
+                        "radial-gradient(circle at 50% 38%, #9d8cf82e, transparent 72%)",
+                    }}
+                  >
+                    <svg width="30" height="30" viewBox="-16 -16 32 32" aria-hidden="true">
+                      <path
+                        d={getFivePointStarPath(12)}
+                        fill={"url(#sc-grad-2)"}
+                        stroke="#9d8cf8"
+                        strokeWidth={0.8}
+                        strokeLinejoin="round"
+                        filter="url(#sc-star-glow)"
+                      />
+                    </svg>
+                  </div>
+                  <div>
+                    <h3 className="font-display text-xl font-bold tracking-wide text-genshin-light leading-tight">
+                      隐藏命星
+                    </h3>
+                    <p
+                      className="text-[11px] tracking-[0.22em] mt-1"
+                      style={{ color: "#9d8cf8" }}
+                    >
+                      已点亮 · 星穹探索者
+                    </p>
+                  </div>
+                </div>
+                <div
+                  className="rounded-2xl border px-4 py-3 mb-6"
+                  style={{
+                    borderColor: "#9d8cf83d",
+                    background: "#9d8cf810",
+                    color: "rgba(237,241,249,0.8)",
+                  }}
+                >
+                  <p className="text-sm leading-relaxed">
+                    你发现了藏在星图深处、不愿发光的命星。
+                    愿你如它一般——即便微弱，也能在自己的轨道上闪耀。✦
+                  </p>
+                </div>
+                <button
+                  onClick={() => setHiddenView(false)}
+                  className="w-full btn btn-ghost !py-2.5 !text-sm"
+                >
+                  收下这份祝福 ✦
+                </button>
+              </motion.div>
             ) : (
               /* ── 总览 ── */
               <motion.div
@@ -1190,6 +1342,7 @@ export default function SkillConstellation({
                 <p className="text-xs leading-relaxed text-muted">
                   悬浮星点为其「充电」，点击即可点亮命星并查看详情；
                   点击簇心菱形或上方分类芯片可聚焦单一星簇。
+                  据说，星图深处还藏着一颗不愿发光的命星……
                 </p>
               </motion.div>
             )}

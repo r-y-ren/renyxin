@@ -153,6 +153,7 @@ const navItems = [
             档案 <span class="en">Profile</span>
           </h2>
           <div class="section-line"></div>
+          <span class="section-coord">RA 18h 36m · DEC +38°</span>
         </div>
         <div class="reveal" style="--d:.08s">
           <DraggableCharacter
@@ -175,6 +176,7 @@ const navItems = [
             进程 <span class="en">Journey</span>
           </h2>
           <div class="section-line"></div>
+          <span class="section-coord">RA 05h 55m · DEC +07°</span>
         </div>
         <div id="contribution" class="reveal journey-graph">
           <ContributionGraph client:load logs={dailyLogs} />
@@ -199,6 +201,7 @@ const navItems = [
             文章 <span class="en">Blog</span>
           </h2>
           <div class="section-line"></div>
+          <span class="section-coord">RA 06h 45m · DEC −16°</span>
         </div>
         <div class="reveal" style="--d:.08s">
           <BlogGrid client:load posts={postsWithContent} />
@@ -215,6 +218,7 @@ const navItems = [
             星图 <span class="en">Constellation</span>
           </h2>
           <div class="section-line"></div>
+          <span class="section-coord">RA 20h 41m · DEC +45°</span>
         </div>
         <div class="reveal" style="--d:.08s">
           <SkillConstellation client:load skills={skillsData} width={900} height={560} />
@@ -231,6 +235,7 @@ const navItems = [
             成就 <span class="en">Achievements</span>
           </h2>
           <div class="section-line"></div>
+          <span class="section-coord">RA 14h 15m · DEC +19°</span>
         </div>
         <div class="reveal" style="--d:.08s">
           <AchievementGrid
@@ -254,8 +259,9 @@ const navItems = [
             未来 <span class="en">Dream</span>
           </h2>
           <div class="section-line"></div>
+          <span class="section-coord">RA 19h 50m · DEC +08°</span>
         </div>
-        <div class="reveal" style="--d:.08s">
+        <div class="reveal dream-card" style="--d:.08s">
           <DraggableOutlook
             client:load
             title={outlookEntry!.data.title}
@@ -271,8 +277,8 @@ const navItems = [
             <a
               key={link.href}
               href={link.href}
-              target="_blank"
-              rel="noopener noreferrer"
+              target={link.href.startsWith('http') ? '_blank' : undefined}
+              rel={link.href.startsWith('http') ? 'noopener noreferrer' : undefined}
               class="btn btn-ghost !py-2.5 !px-7 !text-sm"
             >
               {link.label}
@@ -287,6 +293,40 @@ const navItems = [
   </main>
 
   <!-- ═══ 页脚 ═══ -->
+  <script>
+    // 彩蛋：页脚星星连点 5 次提示，10 次触发全屏流星雨
+    const footerStar = document.querySelector('.footer-star');
+    let eggClicks = 0;
+    let eggToastTimer: number | undefined;
+
+    function showEggToast(msg: string) {
+      let toast = document.getElementById('egg-toast');
+      if (!toast) {
+        toast = document.createElement('div');
+        toast.id = 'egg-toast';
+        toast.className = 'egg-toast';
+        document.body.appendChild(toast);
+      }
+      toast.textContent = msg;
+      toast.classList.add('is-show');
+      window.clearTimeout(eggToastTimer);
+      eggToastTimer = window.setTimeout(() => toast!.classList.remove('is-show'), 2600);
+    }
+
+    if (footerStar) {
+      footerStar.addEventListener('click', () => {
+        eggClicks += 1;
+        if (eggClicks === 5) {
+          showEggToast('再点 5 下，有惊喜 ✦');
+        } else if (eggClicks >= 10) {
+          eggClicks = 0;
+          (window as any).__meteorShower?.();
+          showEggToast('✦ 星雨已至，愿你今夜好梦 ✦');
+        }
+      });
+    }
+  </script>
+
   <footer class="site-footer" id="contact">
     <div class="site-footer-inner">
       <div class="footer-sign">
@@ -294,7 +334,12 @@ const navItems = [
       </div>
       <nav class="footer-links" aria-label="社交链接">
         {footerLinks.map((link) => (
-          <a key={link.href} href={link.href} target="_blank" rel="noopener noreferrer">
+          <a
+            key={link.href}
+            href={link.href}
+            target={link.href.startsWith('http') ? '_blank' : undefined}
+            rel={link.href.startsWith('http') ? 'noopener noreferrer' : undefined}
+          >
             {link.label}
           </a>
         ))}

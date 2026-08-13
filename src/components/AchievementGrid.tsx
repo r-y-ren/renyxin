@@ -21,7 +21,7 @@
  *
  * 消费方：src/pages/index.astro（第 5 块内容区，client:load 激活）
  */
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import {
   AnimatePresence,
   motion,
@@ -256,6 +256,20 @@ export default function AchievementGrid({
 }: AchievementGridProps) {
   // 当前选中弹窗展示的成就（null 表示弹窗关闭）
   const [selected, setSelected] = useState<Achievement | null>(null);
+
+  // 弹窗打开时：Esc 关闭 + 锁定背景滚动
+  useEffect(() => {
+    if (!selected) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") setSelected(null);
+    };
+    window.addEventListener("keydown", onKey);
+    document.body.style.overflow = "hidden";
+    return () => {
+      window.removeEventListener("keydown", onKey);
+      document.body.style.overflow = "";
+    };
+  }, [selected]);
 
   return (
     <>
