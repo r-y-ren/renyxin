@@ -363,6 +363,33 @@ export default function SkillConstellation({
   const MAX_PAN_X = Math.max(60, Math.round(svgSize.w * 0.18));
   const MAX_PAN_Y = Math.max(44, Math.round(svgSize.h * 0.2));
 
+  // 布局坐标系：以 SVG 实际渲染尺寸为准。星图卡片与右侧面板等高拉伸后，
+  // 星座按更高的真实画布铺开（未测得前回退到 props 默认 900×560）
+  const W = svgSize.w || width;
+  const H = svgSize.h || height;
+
+  // 桌面端锁定星图高度：以「总览态」面板内容高度为基准——选中技能切换
+  // 详情视图时面板高度会变，若星图卡片跟着伸缩，星座会整体重排跳动
+  const overviewRef = useRef<HTMLDivElement | null>(null);
+  const [mapCardH, setMapCardH] = useState<number | null>(null);
+  useEffect(() => {
+    const sample = () => {
+      if (selectedName || hiddenView) return;
+      if (!window.matchMedia("(min-width: 1024px)").matches) return;
+      const content = overviewRef.current;
+      if (!content) return;
+      // 面板总高 = 内容高 + aside 内边距（lg:p-7 → 上下 28px）+ 边框 2px
+      const h = content.offsetHeight + 58;
+      if (h < 300) return;
+      setMapCardH((prev) =>
+        prev === null || Math.abs(prev - h) > 8 ? h : prev,
+      );
+    };
+    sample();
+    window.addEventListener("resize", sample);
+    return () => window.removeEventListener("resize", sample);
+  }, [selectedName, hiddenView]);
+
   // 3D 鼠标视差
   const tiltX = useMotionValue(0);
   const tiltY = useMotionValue(0);
@@ -390,8 +417,8 @@ export default function SkillConstellation({
   }, [skills]);
 
   const { skills: layoutSkills, clusters } = useMemo(
-    () => computeClassLayout(safeSkills, width, height),
-    [safeSkills, width, height],
+    () => computeClassLayout(safeSkills, W, H),
+    [safeSkills, W, H],
   );
 
   const skillMap = useMemo(() => {
@@ -404,21 +431,21 @@ export default function SkillConstellation({
   const hovered = hoveredName ? (skillMap.get(hoveredName) ?? null) : null;
   const active = selected ?? hovered;
 
-  const core = { x: width / 2, y: height / 2 };
+  const core = { x: W / 2, y: H / 2 };
   // 隐藏命星：右下角星域（彩蛋）
-  const hiddenStar = { x: width - 64, y: height - 58 };
+  const hiddenStar = { x: W - 64, y: H - 58 };
 
   // 环境尘埃（确定性）
   const dust = useMemo(
     () =>
       Array.from({ length: 18 }, (_, i) => ({
-        x: hash01(i * 13.7) * width,
-        y: hash01(i * 29.3) * height,
+        x: hash01(i * 13.7) * W,
+        y: hash01(i * 29.3) * H,
         r: 0.7 + hash01(i * 7.1) * 1.1,
         dur: 2.6 + hash01(i * 11.9) * 3.4,
         delay: hash01(i * 3.3) * 4,
       })),
-    [width, height],
+    [W, H],
   );
 
   // 总览统计
@@ -498,10 +525,11 @@ export default function SkillConstellation({
         </span>
       </div>
 
-      <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_320px] lg:items-start">
+      <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_320px] lg:items-stretch">
         {/* ═══ 星图 ═══ */}
         <div
-          className="relative overflow-hidden rounded-3xl border border-white/10 bg-[linear-gradient(160deg,rgba(20,31,60,0.55),rgba(6,10,20,0.9))]"
+          className="relative flex min-h-[440px] flex-col overflow-hidden rounded-3xl border border-white/10 bg-[linear-gradient(160deg,rgba(20,31,60,0.55),rgba(6,10,20,0.9))] lg:h-[var(--map-h,auto)]"
+          style={{ "--map-h": mapCardH ? mapCardH + "px" : undefined } as React.CSSProperties}
           onMouseMove={(e) => {
             if (isDragging) return;
             const r = e.currentTarget.getBoundingClientRect();
@@ -522,17 +550,17 @@ export default function SkillConstellation({
             }}
           />
 
-          <div style={{ perspective: 1400 }}>
+          <div className="relative z-10 flex-1" style={{ perspective: 1400 }}>
             <motion.div
+              className="h-full"
               style={{ rotateX, rotateY, transformStyle: "preserve-3d" }}
             >
               <svg
                 ref={svgRef}
-                viewBox={"0 0 " + width + " " + height}
-                className="relative z-10 block w-full"
+                viewBox={"0 0 " + W + " " + H}
+                className="relative z-10 block h-full w-full"
                 style={{
                   background: "transparent",
-                  aspectRatio: width + " / " + height,
                   cursor: isDragging ? "grabbing" : "grab",
                 }}
                 role="img"
@@ -554,7 +582,7 @@ export default function SkillConstellation({
                       <feMergeNode in="SourceGraphic" />
                     </feMerge>
                   </filter>
-                  <filter id="sc-line-glow" filterUnits="userSpaceOnUse" x={-20} y={-20} width={width + 40} height={height + 40}>
+                  <filter id="sc-line-glow" filterUnits="userSpaceOnUse" x={-20} y={-20} width={W + 40} height={H + 40}>
                     <feGaussianBlur in="SourceGraphic" stdDeviation="1.4" result="b" />
                     <feMerge>
                       <feMergeNode in="b" />
@@ -599,18 +627,17 @@ export default function SkillConstellation({
                   ))}
                 </defs>
 
-                {/* 环境尘埃 */}
+                {/* 环境尘埃（translate 在外、缩放在内：轴心恒为本地原点） */}
                 {dust.map((d, i) => (
-                  <motion.circle
-                    key={i}
-                    cx={d.x}
-                    cy={d.y}
-                    r={d.r}
-                    fill="rgba(226,232,255,0.6)"
-                    animate={{ opacity: [0.12, 0.7, 0.12], scale: [0.8, 1.3, 0.8] }}
-                    transition={{ duration: d.dur, repeat: Infinity, ease: "easeInOut", delay: d.delay }}
-                    style={{ pointerEvents: "none" }}
-                  />
+                  <g key={i} transform={"translate(" + d.x + " " + d.y + ")"}>
+                    <motion.circle
+                      r={d.r}
+                      fill="rgba(226,232,255,0.6)"
+                      animate={{ opacity: [0.12, 0.7, 0.12], scale: [0.8, 1.3, 0.8] }}
+                      transition={{ duration: d.dur, repeat: Infinity, ease: "easeInOut", delay: d.delay }}
+                      style={{ pointerEvents: "none" }}
+                    />
+                  </g>
                 ))}
 
                 {/* ── 可拖拽星域（星核随星座一起平移，保证星轨始终相连）── */}
@@ -871,19 +898,22 @@ export default function SkillConstellation({
                           }
                         }}
                       >
-                        {/* 内层：入场（stagger 淡入）+ 悬停/选中弹簧缩放 */}
-                        <motion.g
-                          initial={{ opacity: 0, scale: 0.5 }}
-                          animate={{
-                            opacity: 1,
-                            scale: isSel ? 1.22 : isHov ? 1.12 : 1,
-                          }}
-                          transition={{
-                            opacity: { duration: 0.45, delay: 0.5 + idx * 0.045, ease: "easeOut" },
-                            scale: { type: "spring", stiffness: 300, damping: 20 },
-                          }}
-                        >
-                          <g transform={"translate(" + skill.x + " " + skill.y + ")"}>
+                        {/* 位置 translate 在外、缩放在内：缩放轴心恒为星点本地原点，
+                            布局坐标随画布尺寸更新后不会因 framer 缓存的测量失效
+                            而绕旧位置旋转（表现为星点偏移、连线断裂） */}
+                        <g transform={"translate(" + skill.x + " " + skill.y + ")"}>
+                          {/* 内层：入场（stagger 淡入）+ 悬停/选中弹簧缩放 */}
+                          <motion.g
+                            initial={{ opacity: 0, scale: 0.5 }}
+                            animate={{
+                              opacity: 1,
+                              scale: isSel ? 1.22 : isHov ? 1.12 : 1,
+                            }}
+                            transition={{
+                              opacity: { duration: 0.45, delay: 0.5 + idx * 0.045, ease: "easeOut" },
+                              scale: { type: "spring", stiffness: 300, damping: 20 },
+                            }}
+                          >
                             {/* 命中区 */}
                             <circle r={size + 14} fill="transparent" />
 
@@ -951,26 +981,26 @@ export default function SkillConstellation({
                                 fill="rgba(255,255,255,0.95)"
                               />
                             </motion.g>
-                          </g>
+                          </motion.g>
+                        </g>
 
-                          {/* 名称 */}
-                          <motion.text
-                            x={textX}
-                            y={textY}
-                            textAnchor={textAnchor}
-                            dominantBaseline="middle"
-                            fill="rgba(237,241,249,0.8)"
-                            fontSize={isSel || isHov ? 11.5 : 10}
-                            fontFamily="system-ui, -apple-system, sans-serif"
-                            letterSpacing="0.04em"
-                            filter="url(#sc-text-shadow)"
-                            animate={{ opacity: isSel || isHov ? 1 : 0.82 }}
-                            transition={{ duration: 0.3 }}
-                            style={{ pointerEvents: "none", userSelect: "none" }}
-                          >
-                            {skill.name}
-                          </motion.text>
-                        </motion.g>
+                        {/* 名称（不随缩放，避免字体形变） */}
+                        <motion.text
+                          x={textX}
+                          y={textY}
+                          textAnchor={textAnchor}
+                          dominantBaseline="middle"
+                          fill="rgba(237,241,249,0.8)"
+                          fontSize={isSel || isHov ? 11.5 : 10}
+                          fontFamily="system-ui, -apple-system, sans-serif"
+                          letterSpacing="0.04em"
+                          filter="url(#sc-text-shadow)"
+                          animate={{ opacity: isSel || isHov ? 1 : 0.82 }}
+                          transition={{ duration: 0.3 }}
+                          style={{ pointerEvents: "none", userSelect: "none" }}
+                        >
+                          {skill.name}
+                        </motion.text>
 
                         {/* 火花粒子（不随内层缩放） */}
                         {(isSel || isHov) && (
@@ -1253,6 +1283,7 @@ export default function SkillConstellation({
               /* ── 总览 ── */
               <motion.div
                 key="overview"
+                ref={overviewRef}
                 initial={{ opacity: 0, x: 26 }}
                 animate={{ opacity: 1, x: 0 }}
                 exit={{ opacity: 0, x: -18 }}
