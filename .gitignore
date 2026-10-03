@@ -32,3 +32,7 @@ yarn-error.log*
 
 # Astro
 .astro/
+
+# agent tool artifacts
+.v2c/
+.video_agent/

@@ -6,19 +6,25 @@
  * 统一提供：
  *   1. HTML 文档结构（head meta / favicon / title）
  *   2. 全局样式注入（src/styles/globals.css）
- *   3. 三层动态背景：极光光晕（CSS） + Canvas 星野（含流星） + 指针光斑
+ *   3. 三层动态背景：极光光晕（CSS） + Canvas 星野 v2（景深星场/星芒/流星） + 指针光斑
  *   4. 加载动画（R·monogram + 进度条，载入后淡出）
- *   5. 顶部滚动进度条 + 自定义光标（仅精细指针设备）
- *   6. 背景音乐（带律动频谱按钮）+ 回到顶部悬浮按钮
+ *   5. 顶部滚动进度条 + 自定义光标 + 星光拖尾（仅精细指针设备）
+ *   6. 背景音乐（律动频谱）+ 音效开关 + 星尘挑战小游戏入口 + 回到顶部
  *   7. .reveal 滚动显现观察器
  */
 import '../styles/globals.css';
+import { getEntry } from 'astro:content';
+import StarGame from '../components/StarGame';
+import { sfx } from '../scripts/sfx';
 
 interface Props {
   title: string;
 }
 
 const { title } = Astro.props;
+// 游戏立绘与 Hero 保持同源
+const heroEntry = await getEntry('site-info', 'hero');
+const characterSrc = heroEntry?.data.characterImage ?? '/pictures/胡桃.png';
 ---
 
 <!doctype html>
@@ -65,6 +71,18 @@ const { title } = Astro.props;
     <!-- ═══ 背景音乐 + 悬浮操作 ═══ -->
     <audio id="bg-music" src="/music/music1.mp3" loop preload="auto"></audio>
     <div class="fab-cluster">
+      <button id="game-btn" class="fab fab-game" aria-label="打开星尘挑战小游戏" title="星尘挑战 ✦">
+        <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <path d="M12 2.6l2.7 5.6 6.1.9-4.4 4.3 1 6.1-5.4-2.9-5.4 2.9 1-6.1L3.2 9.1l6.1-.9L12 2.6z"/>
+        </svg>
+      </button>
+      <button id="sfx-btn" class="fab" aria-label="关闭音效" title="音效已开启">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <path d="M11 5L6 9H2v6h4l5 4V5z"/>
+          <path class="sfx-wave" d="M15.5 8.5a5 5 0 010 7M18.5 5.5a9 9 0 010 13"/>
+          <path class="sfx-off" d="M17 9l5 6M22 9l-5 6"/>
+        </svg>
+      </button>
       <button id="music-btn" class="fab" aria-label="播放背景音乐" title="播放背景音乐">
         <span id="music-eq" class="eq paused" aria-hidden="true"><i></i><i></i><i></i><i></i></span>
       </button>
@@ -74,10 +92,15 @@ const { title } = Astro.props;
         </svg>
       </button>
     </div>
+
+    <!-- ═══ 星尘挑战小游戏（彩蛋） ═══ -->
+    <StarGame client:load characterSrc={characterSrc} />
   </body>
 </html>
 
 <script>
+  import { sfx } from '../scripts/sfx';
+
   const prefersReduced = window.matchMedia(
     '(prefers-reduced-motion: reduce)',
   ).matches;
@@ -98,120 +121,21 @@ const { title } = Astro.props;
   }
   setTimeout(hidePreloader, 2800); // 兜底：最迟 2.8s 放行
 
-  // ── 2. Canvas 星野：闪烁星辰 + 鼠标视差 + 偶发流星 ───────────────────────
+  // ── 2. 背景星穹：Three.js 3D 星野优先，失败/减弱动效时降级 2D 星野 ────────
   const canvas = document.getElementById('bg-stars');
   if (canvas && canvas instanceof HTMLCanvasElement) {
-    const ctx = canvas.getContext('2d');
-    let W = 0;
-    let H = 0;
-    let stars: { x: number; y: number; r: number; a: number; tw: number; ph: number }[] = [];
-    let meteors: { x: number; y: number; vx: number; vy: number; life: number; max: number }[] = [];
-    let nextMeteor = 3 + Math.random() * 5;
-
-    // 彩蛋：页脚星星连点 10 次 → 全屏流星雨（index.astro 调用）
-    (window as any).__meteorShower = () => {
-      for (let i = 0; i < 28; i++) {
-        window.setTimeout(() => {
-          meteors.push({
-            x: Math.random() * W * 0.72 + W * 0.14,
-            y: Math.random() * H * 0.28,
-            vx: -(3.2 + Math.random() * 3.6),
-            vy: 1.9 + Math.random() * 2.3,
-            life: 0,
-            max: 66 + Math.random() * 46,
-          });
-        }, i * 120);
-      }
-    };
-    const mouse = { x: window.innerWidth / 2, y: window.innerHeight / 2 };
-
-    const initStars = () => {
-      const count = Math.min(180, Math.floor((W * H) / 8200));
-      stars = Array.from({ length: count }, () => ({
-        x: Math.random() * W,
-        y: Math.random() * H,
-        r: 0.4 + Math.random() * 1.15,
-        a: 0.22 + Math.random() * 0.65,
-        tw: 0.6 + Math.random() * 2.4,
-        ph: Math.random() * Math.PI * 2,
-      }));
-    };
-
-    const resize = () => {
-      const dpr = Math.min(window.devicePixelRatio || 1, 2);
-      W = window.innerWidth;
-      H = window.innerHeight;
-      canvas.width = W * dpr;
-      canvas.height = H * dpr;
-      ctx?.setTransform(dpr, 0, 0, dpr, 0, 0);
-      initStars();
-    };
-
-    let t = 0;
-    const draw = () => {
-      if (!ctx) return;
-      t += 0.016;
-      ctx.clearRect(0, 0, W, H);
-
-      // 星辰（含鼠标视差）
-      for (const s of stars) {
-        const alpha = s.a * (0.5 + 0.5 * Math.sin(t * s.tw + s.ph));
-        const px = s.x + (mouse.x - W / 2) * 0.014 * s.r;
-        const py = s.y + (mouse.y - H / 2) * 0.014 * s.r;
-        ctx.beginPath();
-        ctx.arc(px, py, s.r, 0, Math.PI * 2);
-        ctx.fillStyle = `rgba(226, 232, 255, ${alpha.toFixed(3)})`;
-        ctx.fill();
-      }
-
-      // 流星
-      if (!prefersReduced && t > nextMeteor && meteors.length < 2) {
-        const fromX = Math.random() * W * 0.7 + W * 0.15;
-        const fromY = Math.random() * H * 0.3;
-        meteors.push({
-          x: fromX,
-          y: fromY,
-          vx: -(3 + Math.random() * 3.4),
-          vy: 1.6 + Math.random() * 1.8,
-          life: 0,
-          max: 60 + Math.random() * 40,
-        });
-        nextMeteor = t + 6 + Math.random() * 8;
-      }
-      meteors = meteors.filter((m) => m.life < m.max);
-      for (const m of meteors) {
-        m.life += 1;
-        m.x += m.vx;
-        m.y += m.vy;
-        const fade = 1 - m.life / m.max;
-        const tail = 14;
-        const grad = ctx.createLinearGradient(m.x, m.y, m.x - m.vx * tail, m.y - m.vy * tail);
-        grad.addColorStop(0, `rgba(240, 232, 210, ${(0.85 * fade).toFixed(3)})`);
-        grad.addColorStop(1, 'rgba(240, 232, 210, 0)');
-        ctx.strokeStyle = grad;
-        ctx.lineWidth = 1.4;
-        ctx.beginPath();
-        ctx.moveTo(m.x, m.y);
-        ctx.lineTo(m.x - m.vx * tail, m.y - m.vy * tail);
-        ctx.stroke();
-      }
-    };
-
-    const frame = () => {
-      draw();
-      if (!prefersReduced) requestAnimationFrame(frame);
-    };
-
-    window.addEventListener('resize', resize);
-    window.addEventListener('mousemove', (e) => {
-      mouse.x = e.clientX;
-      mouse.y = e.clientY;
-    });
-    resize();
+    const fallback2D = () =>
+      import('../scripts/starfield2d').then(({ initStarfield2D }) =>
+        initStarfield2D(canvas, prefersReduced),
+      );
     if (prefersReduced) {
-      draw();
+      void fallback2D();
     } else {
-      requestAnimationFrame(frame);
+      import('../scripts/universe3d')
+        .then(({ initUniverse3D }) => {
+          if (!initUniverse3D()) void fallback2D();
+        })
+        .catch(() => void fallback2D());
     }
   }
 
@@ -252,6 +176,31 @@ const { title } = Astro.props;
       if (target?.closest('a, button, [data-cursor], input, textarea, select')) {
         ring?.classList.remove('is-active');
       }
+    });
+
+    // ── 3b. 星光拖尾：鼠标移动时洒落细碎星光（限量，动画结束即销毁）─────────
+    let trailX = 0;
+    let trailY = 0;
+    let trailT = 0;
+    window.addEventListener('mousemove', (e) => {
+      const now = performance.now();
+      const dx = e.clientX - trailX;
+      const dy = e.clientY - trailY;
+      if (now - trailT < 46 || dx * dx + dy * dy < 300) return;
+      trailT = now;
+      trailX = e.clientX;
+      trailY = e.clientY;
+      if (document.querySelectorAll('.sparkle').length > 22) return;
+      const sp = document.createElement('span');
+      sp.className = 'sparkle';
+      sp.textContent = '✦';
+      sp.style.left = `${e.clientX + (Math.random() * 18 - 9)}px`;
+      sp.style.top = `${e.clientY + (Math.random() * 18 - 9)}px`;
+      sp.style.fontSize = `${8 + Math.random() * 8}px`;
+      sp.style.animationDuration = `${0.55 + Math.random() * 0.5}s`;
+      if (Math.random() < 0.35) sp.style.setProperty('--spark', 'var(--cyan)');
+      document.body.appendChild(sp);
+      sp.addEventListener('animationend', () => sp.remove());
     });
   }
 
@@ -309,6 +258,35 @@ const { title } = Astro.props;
     },
     { once: true },
   );
+
+  // ── 6b. 小游戏入口 + 音效开关 + 按钮音效 ─────────────────────────────────
+  const gameBtn = document.getElementById('game-btn');
+  const sfxBtn = document.getElementById('sfx-btn');
+
+  gameBtn?.addEventListener('click', () => {
+    sfx.unlock();
+    sfx.click();
+    (window as any).__openStarGame?.();
+    document.dispatchEvent(new CustomEvent('star-game:open'));
+  });
+
+  const syncSfxBtn = () => {
+    if (!sfxBtn) return;
+    const off = sfx.muted;
+    sfxBtn.classList.toggle('is-muted', off);
+    sfxBtn.title = off ? '音效已关闭' : '音效已开启';
+    sfxBtn.setAttribute('aria-label', off ? '开启音效' : '关闭音效');
+  };
+  sfxBtn?.addEventListener('click', () => {
+    sfx.unlock();
+    sfx.toggleMuted();
+    syncSfxBtn();
+    if (!sfx.muted) sfx.pop();
+  });
+  syncSfxBtn();
+
+  musicBtn?.addEventListener('click', () => sfx.click());
+  backTop?.addEventListener('click', () => sfx.click());
 
   // ── 6. .reveal 滚动显现观察器 ────────────────────────────────────────────
   const revealObserver = new IntersectionObserver(

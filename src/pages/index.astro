@@ -317,7 +317,7 @@ const navItems = [
       footerStar.addEventListener('click', () => {
         eggClicks += 1;
         if (eggClicks === 5) {
-          showEggToast('再点 5 下，有惊喜 ✦');
+          showEggToast('再点 5 下有惊喜 ✦ 游戏在右下角');
         } else if (eggClicks >= 10) {
           eggClicks = 0;
           (window as any).__meteorShower?.();
@@ -325,6 +325,9 @@ const navItems = [
         }
       });
     }
+
+    // 暴露给小游戏（StarGame 破纪录时弹祝福 toast）
+    (window as any).__eggToast = showEggToast;
   </script>
 
   <footer class="site-footer" id="contact">

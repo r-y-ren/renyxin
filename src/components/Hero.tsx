@@ -135,6 +135,38 @@ function Magnetic({
   );
 }
 
+/** 社交图标（按链接标签匹配，未知标签用跳转箭头兜底） */
+function SocialIcon({ label }: { label: string }) {
+  const l = label.toLowerCase();
+  if (l.includes("github")) {
+    return (
+      <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+        <path d="M12 .5C5.65.5.5 5.65.5 12c0 5.08 3.29 9.39 7.86 10.91.58.11.79-.25.79-.56 0-.28-.01-1.02-.02-2-3.2.7-3.88-1.54-3.88-1.54-.52-1.33-1.28-1.68-1.28-1.68-1.05-.72.08-.7.08-.7 1.16.08 1.77 1.19 1.77 1.19 1.03 1.77 2.7 1.26 3.36.96.1-.75.4-1.26.73-1.55-2.55-.29-5.24-1.28-5.24-5.69 0-1.26.45-2.28 1.19-3.09-.12-.29-.52-1.46.11-3.05 0 0 .97-.31 3.18 1.18a11.1 11.1 0 0 1 5.78 0c2.21-1.49 3.18-1.18 3.18-1.18.63 1.59.23 2.76.11 3.05.74.81 1.19 1.83 1.19 3.09 0 4.42-2.69 5.39-5.25 5.68.41.35.78 1.05.78 2.12 0 1.53-.01 2.76-.01 3.14 0 .31.21.68.8.56A10.52 10.52 0 0 0 23.5 12C23.5 5.65 18.35.5 12 .5z" />
+      </svg>
+    );
+  }
+  if (l.includes("mail") || l.includes("email") || l.includes("邮")) {
+    return (
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+        <rect x="3" y="5" width="18" height="14" rx="2" />
+        <path d="m3.5 7 8.5 6 8.5-6" />
+      </svg>
+    );
+  }
+  if (l.includes("qq") || l.includes("chat")) {
+    return (
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+        <path d="M21 12a8 8 0 0 1-8 8H4.5l-1.2 2.4.5-4.6A8 8 0 1 1 21 12z" />
+      </svg>
+    );
+  }
+  return (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <path d="M7 17 17 7M9 7h8v8" />
+    </svg>
+  );
+}
+
 export default function Hero({
   title,
   subtitle,
@@ -249,9 +281,9 @@ export default function Hero({
           {subtitle}
         </motion.p>
 
-        {/* CTA + 社交 */}
+        {/* CTA 按钮组 */}
         <motion.div
-          className="flex flex-wrap items-center gap-4 mb-12"
+          className="flex flex-wrap items-center gap-3.5 mb-6"
           initial={{ opacity: 0, y: 18 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.7, delay: 1.15, ease: easeOut }}
@@ -269,16 +301,40 @@ export default function Hero({
               浏览文章
             </a>
           </Magnetic>
-          {links.slice(0, 2).map((link) => (
+          <Magnetic strength={0.24}>
+            <button
+              type="button"
+              className="btn btn-star"
+              data-cursor
+              onClick={() => {
+                (window as unknown as { __openStarGame?: () => void }).__openStarGame?.();
+                document.dispatchEvent(new CustomEvent('star-game:open'));
+              }}
+            >
+              ✦ 星尘挑战
+            </button>
+          </Magnetic>
+        </motion.div>
+
+        {/* 社交链接：独立一行的图标胶囊 */}
+        <motion.div
+          className="hero-socials mb-11"
+          initial={{ opacity: 0, y: 14 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.7, delay: 1.28, ease: easeOut }}
+        >
+          <span className="hero-socials-label">CONTACT</span>
+          {links.map((link) => (
             <a
               key={link.href}
               href={link.href}
               target={link.href.startsWith("http") ? "_blank" : undefined}
               rel={link.href.startsWith("http") ? "noopener noreferrer" : undefined}
-              className="text-sm text-muted hover:text-genshin-gold transition-colors duration-300 tracking-widest underline-offset-4 hover:underline"
+              className="hero-social"
               data-cursor
             >
-              {link.label} ↗
+              <SocialIcon label={link.label} />
+              <span>{link.label}</span>
             </a>
           ))}
         </motion.div>
